@@ -1,0 +1,504 @@
+import React, { useState, useCallback } from 'react';
+import { ThreeViewer, ModelLoadResult } from '../src';
+
+/**
+ * Demo Application for ThreeViewer Component
+ * 
+ * This demo showcases the basic usage of the ThreeViewer component including:
+ * - Model URL input for loading GLTF/GLB models
+ * - Pivot point controls (x, y, z)
+ * - Zoom limits controls (min, max)
+ * - Loading state indicator
+ * - Error message display
+ * 
+ * Requirement 6.3: THE project SHALL include a demo application that showcases the Viewer component
+ */
+
+// Default sample model URL (a public GLTF model)
+const DEFAULT_MODEL_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF/Duck.gltf';
+
+// Demo styles
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    width: '100vw',
+    backgroundColor: '#1a1a2e',
+    color: '#eaeaea',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  header: {
+    padding: '16px 24px',
+    backgroundColor: '#16213e',
+    borderBottom: '1px solid #0f3460',
+  },
+  title: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: 600,
+    color: '#e94560',
+  },
+  subtitle: {
+    margin: '4px 0 0 0',
+    fontSize: '14px',
+    color: '#a0a0a0',
+  },
+  main: {
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden',
+  },
+  sidebar: {
+    width: '320px',
+    padding: '20px',
+    backgroundColor: '#16213e',
+    borderRight: '1px solid #0f3460',
+    overflowY: 'auto',
+  },
+  viewerContainer: {
+    flex: 1,
+    position: 'relative',
+    backgroundColor: '#0f0f23',
+  },
+  section: {
+    marginBottom: '24px',
+  },
+  sectionTitle: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#e94560',
+    marginBottom: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  inputGroup: {
+    marginBottom: '12px',
+  },
+  label: {
+    display: 'block',
+    fontSize: '12px',
+    color: '#a0a0a0',
+    marginBottom: '4px',
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    backgroundColor: '#1a1a2e',
+    border: '1px solid #0f3460',
+    borderRadius: '6px',
+    color: '#eaeaea',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    boxSizing: 'border-box',
+  },
+  inputFocus: {
+    borderColor: '#e94560',
+  },
+  button: {
+    width: '100%',
+    padding: '12px 16px',
+    fontSize: '14px',
+    fontWeight: 600,
+    backgroundColor: '#e94560',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s, transform 0.1s',
+  },
+  buttonHover: {
+    backgroundColor: '#d63850',
+  },
+  buttonDisabled: {
+    backgroundColor: '#4a4a5a',
+    cursor: 'not-allowed',
+  },
+  row: {
+    display: 'flex',
+    gap: '12px',
+  },
+  col: {
+    flex: 1,
+  },
+  statusContainer: {
+    padding: '12px',
+    borderRadius: '6px',
+    backgroundColor: '#1a1a2e',
+    border: '1px solid #0f3460',
+  },
+  loadingIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#4fc3f7',
+  },
+  spinner: {
+    width: '16px',
+    height: '16px',
+    border: '2px solid #4fc3f7',
+    borderTopColor: 'transparent',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  errorMessage: {
+    color: '#ff6b6b',
+    fontSize: '13px',
+    wordBreak: 'break-word',
+  },
+  successMessage: {
+    color: '#69f0ae',
+    fontSize: '13px',
+  },
+  modelInfo: {
+    marginTop: '8px',
+    fontSize: '12px',
+    color: '#a0a0a0',
+  },
+  overlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    textAlign: 'center',
+    color: '#a0a0a0',
+  },
+  overlayText: {
+    fontSize: '16px',
+    marginBottom: '8px',
+  },
+  overlayHint: {
+    fontSize: '12px',
+    color: '#666',
+  },
+};
+
+// CSS keyframes for spinner animation (injected via style tag)
+const spinnerKeyframes = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const App: React.FC = () => {
+  // Model URL state
+  const [modelUrl, setModelUrl] = useState<string>(DEFAULT_MODEL_URL);
+  const [inputUrl, setInputUrl] = useState<string>(DEFAULT_MODEL_URL);
+
+  // Pivot point state
+  const [pivotPoint, setPivotPoint] = useState<{ x: number; y: number; z: number } | undefined>(undefined);
+  const [pivotX, setPivotX] = useState<string>('0');
+  const [pivotY, setPivotY] = useState<string>('0');
+  const [pivotZ, setPivotZ] = useState<string>('0');
+  const [usePivotPoint, setUsePivotPoint] = useState<boolean>(false);
+
+  // Zoom limits state
+  const [zoomLimits, setZoomLimits] = useState<{ min?: number; max?: number } | undefined>(undefined);
+  const [zoomMin, setZoomMin] = useState<string>('0.1');
+  const [zoomMax, setZoomMax] = useState<string>('100');
+  const [useZoomLimits, setUseZoomLimits] = useState<boolean>(false);
+
+  // Loading and error state
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [loadResult, setLoadResult] = useState<ModelLoadResult | null>(null);
+
+  // Handle model load
+  const handleLoad = useCallback(() => {
+    setError(null);
+    setLoadResult(null);
+    setModelUrl(inputUrl);
+  }, [inputUrl]);
+
+  // Handle model load success
+  const handleLoadSuccess = useCallback((result: ModelLoadResult) => {
+    setLoadResult(result);
+    setError(null);
+  }, []);
+
+  // Handle model load error
+  const handleLoadError = useCallback((err: Error) => {
+    setError(err);
+    setLoadResult(null);
+  }, []);
+
+  // Handle loading state change
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    setIsLoading(loading);
+  }, []);
+
+  // Apply pivot point
+  const handleApplyPivotPoint = useCallback(() => {
+    if (usePivotPoint) {
+      const x = parseFloat(pivotX) || 0;
+      const y = parseFloat(pivotY) || 0;
+      const z = parseFloat(pivotZ) || 0;
+      setPivotPoint({ x, y, z });
+    } else {
+      setPivotPoint(undefined);
+    }
+  }, [usePivotPoint, pivotX, pivotY, pivotZ]);
+
+  // Apply zoom limits
+  const handleApplyZoomLimits = useCallback(() => {
+    if (useZoomLimits) {
+      const min = parseFloat(zoomMin) || 0.1;
+      const max = parseFloat(zoomMax) || 100;
+      setZoomLimits({ min, max });
+    } else {
+      setZoomLimits(undefined);
+    }
+  }, [useZoomLimits, zoomMin, zoomMax]);
+
+  // Reset to defaults
+  const handleReset = useCallback(() => {
+    setInputUrl(DEFAULT_MODEL_URL);
+    setModelUrl(DEFAULT_MODEL_URL);
+    setPivotX('0');
+    setPivotY('0');
+    setPivotZ('0');
+    setUsePivotPoint(false);
+    setPivotPoint(undefined);
+    setZoomMin('0.1');
+    setZoomMax('100');
+    setUseZoomLimits(false);
+    setZoomLimits(undefined);
+    setError(null);
+    setLoadResult(null);
+  }, []);
+
+  return (
+    <div style={styles.container}>
+      {/* Inject spinner animation */}
+      <style>{spinnerKeyframes}</style>
+
+      {/* Header */}
+      <header style={styles.header}>
+        <h1 style={styles.title}>Three.js Viewer Demo</h1>
+        <p style={styles.subtitle}>
+          A modular 3D model viewer component for React
+        </p>
+      </header>
+
+      {/* Main content */}
+      <main style={styles.main}>
+        {/* Sidebar with controls */}
+        <aside style={styles.sidebar}>
+          {/* Model URL Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Model URL</h2>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>GLTF/GLB Model URL</label>
+              <input
+                type="text"
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                placeholder="Enter model URL..."
+                style={styles.input}
+              />
+            </div>
+            <button
+              onClick={handleLoad}
+              disabled={isLoading || !inputUrl}
+              style={{
+                ...styles.button,
+                ...(isLoading || !inputUrl ? styles.buttonDisabled : {}),
+              }}
+            >
+              {isLoading ? 'Loading...' : 'Load Model'}
+            </button>
+          </section>
+
+          {/* Pivot Point Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Pivot Point</h2>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={usePivotPoint}
+                  onChange={(e) => setUsePivotPoint(e.target.checked)}
+                />
+                Use Custom Pivot Point
+              </label>
+            </div>
+            <div style={{ ...styles.row, opacity: usePivotPoint ? 1 : 0.5 }}>
+              <div style={styles.col}>
+                <label style={styles.label}>X</label>
+                <input
+                  type="number"
+                  value={pivotX}
+                  onChange={(e) => setPivotX(e.target.value)}
+                  disabled={!usePivotPoint}
+                  style={styles.input}
+                  step="0.1"
+                />
+              </div>
+              <div style={styles.col}>
+                <label style={styles.label}>Y</label>
+                <input
+                  type="number"
+                  value={pivotY}
+                  onChange={(e) => setPivotY(e.target.value)}
+                  disabled={!usePivotPoint}
+                  style={styles.input}
+                  step="0.1"
+                />
+              </div>
+              <div style={styles.col}>
+                <label style={styles.label}>Z</label>
+                <input
+                  type="number"
+                  value={pivotZ}
+                  onChange={(e) => setPivotZ(e.target.value)}
+                  disabled={!usePivotPoint}
+                  style={styles.input}
+                  step="0.1"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleApplyPivotPoint}
+              style={{
+                ...styles.button,
+                marginTop: '12px',
+                backgroundColor: '#0f3460',
+              }}
+            >
+              Apply Pivot Point
+            </button>
+          </section>
+
+          {/* Zoom Limits Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Zoom Limits</h2>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={useZoomLimits}
+                  onChange={(e) => setUseZoomLimits(e.target.checked)}
+                />
+                Use Custom Zoom Limits
+              </label>
+            </div>
+            <div style={{ ...styles.row, opacity: useZoomLimits ? 1 : 0.5 }}>
+              <div style={styles.col}>
+                <label style={styles.label}>Min Distance</label>
+                <input
+                  type="number"
+                  value={zoomMin}
+                  onChange={(e) => setZoomMin(e.target.value)}
+                  disabled={!useZoomLimits}
+                  style={styles.input}
+                  step="0.1"
+                  min="0.01"
+                />
+              </div>
+              <div style={styles.col}>
+                <label style={styles.label}>Max Distance</label>
+                <input
+                  type="number"
+                  value={zoomMax}
+                  onChange={(e) => setZoomMax(e.target.value)}
+                  disabled={!useZoomLimits}
+                  style={styles.input}
+                  step="1"
+                  min="0.1"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleApplyZoomLimits}
+              style={{
+                ...styles.button,
+                marginTop: '12px',
+                backgroundColor: '#0f3460',
+              }}
+            >
+              Apply Zoom Limits
+            </button>
+          </section>
+
+          {/* Status Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Status</h2>
+            <div style={styles.statusContainer}>
+              {isLoading && (
+                <div style={styles.loadingIndicator}>
+                  <div style={styles.spinner} />
+                  <span>Loading model...</span>
+                </div>
+              )}
+              {error && (
+                <div style={styles.errorMessage}>
+                  <strong>Error:</strong> {error.message}
+                </div>
+              )}
+              {!isLoading && !error && loadResult && (
+                <div>
+                  <div style={styles.successMessage}>✓ Model loaded successfully</div>
+                  <div style={styles.modelInfo}>
+                    <div>Center: ({loadResult.center.x.toFixed(2)}, {loadResult.center.y.toFixed(2)}, {loadResult.center.z.toFixed(2)})</div>
+                  </div>
+                </div>
+              )}
+              {!isLoading && !error && !loadResult && !modelUrl && (
+                <div style={{ color: '#a0a0a0', fontSize: '13px' }}>
+                  Enter a model URL and click "Load Model" to begin
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Reset Button */}
+          <button
+            onClick={handleReset}
+            style={{
+              ...styles.button,
+              backgroundColor: '#333',
+            }}
+          >
+            Reset to Defaults
+          </button>
+
+          {/* Instructions */}
+          <section style={{ ...styles.section, marginTop: '24px' }}>
+            <h2 style={styles.sectionTitle}>Controls</h2>
+            <div style={{ fontSize: '12px', color: '#a0a0a0', lineHeight: 1.6 }}>
+              <p><strong>Rotate:</strong> Left-click and drag</p>
+              <p><strong>Zoom:</strong> Scroll wheel or pinch</p>
+              <p><strong>Pan:</strong> Right-click and drag</p>
+            </div>
+          </section>
+        </aside>
+
+        {/* Viewer Container */}
+        <div style={styles.viewerContainer}>
+          {modelUrl ? (
+            <ThreeViewer
+              modelUrl={modelUrl}
+              pivotPoint={pivotPoint}
+              zoomLimits={zoomLimits}
+              onLoad={handleLoadSuccess}
+              onError={handleLoadError}
+              onLoadingChange={handleLoadingChange}
+              style={{ width: '100%', height: '100%' }}
+            />
+          ) : (
+            <div style={styles.overlay}>
+              <div style={styles.overlayText}>No model loaded</div>
+              <div style={styles.overlayHint}>
+                Enter a GLTF/GLB model URL in the sidebar and click "Load Model"
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default App;

@@ -11,18 +11,18 @@
     - 使用 `npm create vite@latest` 创建项目
     - 配置 TypeScript 严格模式
     - _Requirements: 6.1, 6.2_
-  - [~] 1.2 安装依赖并配置构建
+  - [x] 1.2 安装依赖并配置构建
     - 安装 three、@types/three、three-stdlib
     - 配置 Vite 库模式输出
     - 配置 package.json 的 exports 字段
     - _Requirements: 6.1, 6.5_
-  - [~] 1.3 配置测试环境
+  - [x] 1.3 配置测试环境
     - 安装 vitest、@testing-library/react、@fast-check/vitest
     - 配置 vitest.config.ts
     - _Requirements: 6.1_
 
 - [ ] 2. 实现核心模块
-  - [~] 2.1 实现 SceneManager
+  - [x] 2.1 实现 SceneManager
     - 创建 `src/core/SceneManager.ts`
     - 实现 scene 创建、add、remove、clear、dispose 方法
     - _Requirements: 4.2, 4.3_
@@ -30,7 +30,7 @@
     - 测试对象添加/移除
     - 测试 dispose 清理
     - _Requirements: 4.3_
-  - [~] 2.3 实现 CameraManager
+  - [x] 2.3 实现 CameraManager
     - 创建 `src/core/CameraManager.ts`
     - 实现 PerspectiveCamera 创建和配置
     - 实现 setAspect、lookAt、dispose 方法
@@ -39,7 +39,7 @@
     - 测试配置应用
     - 测试 aspect ratio 更新
     - _Requirements: 4.4_
-  - [~] 2.5 实现 RenderManager
+  - [x] 2.5 实现 RenderManager
     - 创建 `src/core/RenderManager.ts`
     - 实现 WebGLRenderer 创建和配置
     - 实现 setSize、render、dispose 方法
@@ -50,7 +50,7 @@
     - _Requirements: 4.4_
 
 - [ ] 3. 实现插件系统
-  - [~] 3.1 实现 PluginSystem
+  - [x] 3.1 实现 PluginSystem
     - 创建 `src/core/PluginSystem.ts`
     - 实现 register、unregister、get、updateAll、disposeAll 方法
     - 定义 Plugin 和 PluginContext 接口
@@ -66,11 +66,11 @@
     - **Property 14: Plugin Update Notification**
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.5**
 
-- [~] 4. Checkpoint - 核心模块验证
+- [x] 4. Checkpoint - 核心模块验证
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. 实现 ViewerCore
-  - [~] 5.1 实现 ViewerCore 类
+  - [x] 5.1 实现 ViewerCore 类
     - 创建 `src/core/ViewerCore.ts`
     - 整合 SceneManager、CameraManager、RenderManager、PluginSystem
     - 实现 initialize、start、stop、dispose、resize 方法
@@ -82,7 +82,7 @@
     - _Requirements: 4.2, 4.3_
 
 - [ ] 6. 实现 ModelLoaderPlugin
-  - [~] 6.1 实现 ModelLoaderPlugin
+  - [x] 6.1 实现 ModelLoaderPlugin
     - 创建 `src/plugins/ModelLoaderPlugin.ts`
     - 使用 GLTFLoader 加载模型
     - 实现 load、unload、getCenter、getBoundingBox 方法
@@ -101,7 +101,7 @@
     - **Validates: Requirements 1.2, 1.3, 1.5**
 
 - [ ] 7. 实现 OrbitControlsPlugin
-  - [~] 7.1 实现 OrbitControlsPlugin
+  - [x] 7.1 实现 OrbitControlsPlugin
     - 创建 `src/plugins/OrbitControlsPlugin.ts`
     - 使用 three-stdlib 的 OrbitControls
     - 实现 configure、setTarget、setZoomLimits、reset 方法
@@ -119,11 +119,11 @@
     - **Property 8: Zoom Limits Enforcement**
     - **Validates: Requirements 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4**
 
-- [~] 8. Checkpoint - 插件验证
+- [x] 8. Checkpoint - 插件验证
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. 实现 React 组件
-  - [~] 9.1 实现 ThreeViewer 组件
+  - [x] 9.1 实现 ThreeViewer 组件
     - 创建 `src/components/ThreeViewer.tsx`
     - 使用 useRef 管理 container 和 ViewerCore 实例
     - 使用 useEffect 处理初始化和清理
@@ -143,32 +143,32 @@
     - **Validates: Requirements 4.3, 4.4, 4.6**
 
 - [ ] 10. 配置库导出
-  - [~] 10.1 创建库入口文件
+  - [x] 10.1 创建库入口文件
     - 创建 `src/index.ts`
     - 导出 ThreeViewer 组件
     - 导出类型定义
     - 导出核心类和插件（供高级用户使用）
     - _Requirements: 4.1, 6.5_
-  - [~] 10.2 配置 Vite 库模式
+  - [x] 10.2 配置 Vite 库模式
     - 配置 vite.config.ts 的 build.lib 选项
     - 配置 external 依赖（react、three）
     - 生成类型声明文件
     - _Requirements: 6.5_
 
 - [ ] 11. 创建 Demo 应用
-  - [~] 11.1 创建 Demo 页面
+  - [x] 11.1 创建 Demo 页面
     - 创建 `demo/App.tsx`
     - 展示 ThreeViewer 组件的基本用法
     - 添加模型 URL 输入
     - 添加 pivot point 和 zoom limits 控制
     - 显示加载状态和错误信息
     - _Requirements: 6.3_
-  - [~] 11.2 配置 Demo 入口
+  - [x] 11.2 配置 Demo 入口
     - 创建 `demo/main.tsx` 和 `demo/index.html`
     - 配置 Vite 开发服务器
     - _Requirements: 6.3, 6.4_
 
-- [~] 12. Final Checkpoint - 完整验证
+- [x] 12. Final Checkpoint - 完整验证
   - Ensure all tests pass, ask the user if questions arise.
   - 验证 Demo 应用正常运行
   - 验证库构建输出正确

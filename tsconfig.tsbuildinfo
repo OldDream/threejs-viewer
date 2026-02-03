@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.8.3"}
+{"root":["./src/app.tsx","./src/index.ts","./src/main.tsx","./src/vite-env.d.ts","./src/components/threeviewer.tsx","./src/core/cameramanager.ts","./src/core/pluginsystem.ts","./src/core/rendermanager.ts","./src/core/scenemanager.ts","./src/core/viewercore.ts","./src/plugins/modelloaderplugin.ts","./src/plugins/orbitcontrolsplugin.ts","./src/test/react-testing.test.tsx","./src/test/setup.test.ts","./src/test/setup.ts"],"version":"5.8.3"}
