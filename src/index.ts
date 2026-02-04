@@ -42,6 +42,12 @@ export {
   type GridPlane
 } from './plugins/GridHelperPlugin';
 
+export {
+  CameraMovementPlugin,
+  type ICameraMovementPlugin,
+  type CameraMovementConfig
+} from './plugins/CameraMovementPlugin';
+
 // React Component exports
 export {
   ThreeViewer,

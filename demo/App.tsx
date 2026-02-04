@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { ThreeViewer, ModelLoadResult, GridConfig } from '../src';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { ThreeViewer, ModelLoadResult, GridConfig, CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin } from '../src';
 
 /**
  * Demo Application for ThreeViewer Component
@@ -184,6 +184,12 @@ const spinnerKeyframes = `
 `;
 
 const App: React.FC = () => {
+  // ThreeViewer ref for accessing ViewerCore and plugins
+  const viewerRef = useRef<ThreeViewerHandle>(null);
+  
+  // CameraMovementPlugin instance ref
+  const cameraMovementPluginRef = useRef<ICameraMovementPlugin | null>(null);
+
   // Model URL state
   const [modelUrl, setModelUrl] = useState<string>(DEFAULT_MODEL_URL);
   const [inputUrl, setInputUrl] = useState<string>(DEFAULT_MODEL_URL);
@@ -206,6 +212,10 @@ const App: React.FC = () => {
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [showAxes, setShowAxes] = useState<boolean>(true);
   const [gridPlane, setGridPlane] = useState<'XY' | 'XZ' | 'YZ'>('XZ');
+
+  // Camera movement state
+  const [enableCameraMovement, setEnableCameraMovement] = useState<boolean>(true);
+  const [cameraMovementSpeed, setCameraMovementSpeed] = useState<number>(5.0);
 
   // Loading and error state
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -269,6 +279,47 @@ const App: React.FC = () => {
       divisions: 10,
     });
   }, [showGrid, showAxes, gridPlane]);
+
+  // Register CameraMovementPlugin when viewer is ready
+  useEffect(() => {
+    const viewerCore = viewerRef.current?.getViewerCore();
+    if (!viewerCore || !viewerCore.isInitialized) {
+      return;
+    }
+
+    // Create and register the CameraMovementPlugin
+    const plugin = new CameraMovementPlugin();
+    viewerCore.plugins.register(plugin);
+    cameraMovementPluginRef.current = plugin;
+
+    // Connect to OrbitControls target for FPS-style movement
+    const orbitPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
+    if (orbitPlugin) {
+      plugin.setOrbitControlsTarget(orbitPlugin.controls.target);
+    }
+
+    // Cleanup: unregister plugin when component unmounts
+    return () => {
+      if (cameraMovementPluginRef.current) {
+        viewerCore.plugins.unregister(cameraMovementPluginRef.current.name);
+        cameraMovementPluginRef.current = null;
+      }
+    };
+  }, [modelUrl]); // Re-register when modelUrl changes (viewer re-initializes)
+
+  // Sync enableCameraMovement state with plugin
+  useEffect(() => {
+    if (cameraMovementPluginRef.current) {
+      cameraMovementPluginRef.current.setEnabled(enableCameraMovement);
+    }
+  }, [enableCameraMovement]);
+
+  // Sync cameraMovementSpeed state with plugin
+  useEffect(() => {
+    if (cameraMovementPluginRef.current) {
+      cameraMovementPluginRef.current.setMoveSpeed(cameraMovementSpeed);
+    }
+  }, [cameraMovementSpeed]);
 
   // Reset to defaults
   const handleReset = useCallback(() => {
@@ -477,6 +528,43 @@ const App: React.FC = () => {
             </div>
           </section>
 
+          {/* Camera Movement Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Camera Movement</h2>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={enableCameraMovement}
+                  onChange={(e) => setEnableCameraMovement(e.target.checked)}
+                />
+                Enable Camera Movement
+              </label>
+            </div>
+            <div style={{ ...styles.inputGroup, opacity: enableCameraMovement ? 1 : 0.5 }}>
+              <label style={styles.label}>
+                Movement Speed: {cameraMovementSpeed.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="200"
+                step="0.5"
+                value={cameraMovementSpeed}
+                onChange={(e) => setCameraMovementSpeed(parseFloat(e.target.value))}
+                disabled={!enableCameraMovement}
+                style={{
+                  width: '100%',
+                  cursor: enableCameraMovement ? 'pointer' : 'not-allowed',
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#666' }}>
+                <span>0.5</span>
+                <span>200</span>
+              </div>
+            </div>
+          </section>
+
           {/* Status Section */}
           <section style={styles.section}>
             <h2 style={styles.sectionTitle}>Status</h2>
@@ -526,6 +614,13 @@ const App: React.FC = () => {
               <p><strong>Rotate:</strong> Left-click and drag</p>
               <p><strong>Zoom:</strong> Scroll wheel or pinch</p>
               <p><strong>Pan:</strong> Right-click and drag</p>
+              <p style={{ marginTop: '12px', borderTop: '1px solid #0f3460', paddingTop: '12px' }}>
+                <strong>Keyboard Movement:</strong>
+              </p>
+              <p><strong>W / S:</strong> Move forward / backward</p>
+              <p><strong>A / D:</strong> Move left / right</p>
+              <p><strong>Shift:</strong> Move up</p>
+              <p><strong>Ctrl:</strong> Move down</p>
             </div>
           </section>
         </aside>
@@ -534,6 +629,7 @@ const App: React.FC = () => {
         <div style={styles.viewerContainer}>
           {modelUrl ? (
             <ThreeViewer
+              ref={viewerRef}
               modelUrl={modelUrl}
               pivotPoint={pivotPoint}
               zoomLimits={zoomLimits}
