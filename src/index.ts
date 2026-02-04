@@ -41,3 +41,10 @@ export {
   type ThreeViewerProps,
   type ZoomLimits
 } from './components/ThreeViewer';
+
+// Instance Access API exports
+export { useThreeInstance } from './hooks/useThreeInstance';
+export type { 
+  ThreeInstanceContextValue, 
+  ThreeViewerHandle 
+} from './types/instance';
