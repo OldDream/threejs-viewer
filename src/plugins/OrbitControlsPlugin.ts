@@ -65,8 +65,8 @@ export class OrbitControlsPlugin implements IOrbitControlsPlugin {
   // Store initial state for reset functionality
   private _initialTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private _initialCameraPosition: THREE.Vector3 = new THREE.Vector3(0, 0, 5);
-  private _initialMinDistance: number = 0.1;
-  private _initialMaxDistance: number = 1000;
+  private _initialMinDistance: number = 0.1;  // Allow closer zoom with smaller near plane
+  private _initialMaxDistance: number = 10000;
 
   /**
    * Gets the OrbitControls instance.

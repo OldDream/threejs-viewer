@@ -15,7 +15,7 @@ import { ThreeViewer, ModelLoadResult } from '../src';
  */
 
 // Default sample model URL (a public GLTF model)
-const DEFAULT_MODEL_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF/Duck.gltf';
+const DEFAULT_MODEL_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/refs/heads/main/2.0/2CylinderEngine/glTF/2CylinderEngine.gltf';
 
 // Demo styles
 const styles: Record<string, React.CSSProperties> = {
@@ -50,6 +50,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
   },
   sidebar: {
+    flexShrink: 0,
     width: '320px',
     padding: '20px',
     backgroundColor: '#16213e',

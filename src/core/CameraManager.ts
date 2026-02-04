@@ -28,8 +28,8 @@ export interface ICameraManager {
  */
 const DEFAULT_CONFIG: Required<Omit<CameraConfig, 'position'>> & { position: THREE.Vector3 } = {
   fov: 75,
-  near: 0.1,
-  far: 1000,
+  near: 0.01,  // Smaller near plane to prevent clipping when rotating close to model
+  far: 10000,  // Larger far plane for viewing large models from distance
   position: new THREE.Vector3(0, 0, 5),
 };
 

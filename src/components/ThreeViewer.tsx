@@ -314,7 +314,10 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
             const maxDimension = Math.max(size.x, size.y, size.z);
             
             // Set reasonable defaults: min = 10% of model size, max = 10x model size
-            orbitControls.setZoomLimits(maxDimension * 0.1, maxDimension * 10);
+            // Cap maxDistance to camera's far plane to prevent model from disappearing
+            const cameraFar = viewerCoreRef.current?.camera.camera.far ?? 1000;
+            const maxDistance = Math.min(maxDimension * 10, cameraFar * 0.9);
+            orbitControls.setZoomLimits(maxDimension * 0.1, maxDistance);
           }
 
           // Invoke onLoad callback
@@ -368,7 +371,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
 
       if (zoomLimits) {
         const min = zoomLimits.min ?? 0.1;
-        const max = zoomLimits.max ?? 1000;
+        const max = zoomLimits.max ?? 10000;
         orbitControls.setZoomLimits(min, max);
       }
     }, [zoomLimits]);

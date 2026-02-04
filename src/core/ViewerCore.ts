@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { SceneManager, ISceneManager } from './SceneManager';
 import { CameraManager, ICameraManager, CameraConfig } from './CameraManager';
 import { RenderManager, IRenderManager, RenderManagerOptions } from './RenderManager';
@@ -171,6 +172,9 @@ export class ViewerCore implements IViewerCore {
     const height = container.clientHeight || 1;
     this._cameraManager.setAspect(width / height);
 
+    // Add default lighting for PBR materials
+    this._setupDefaultLighting();
+
     // Set up the plugin context
     const pluginContext: PluginContext = {
       scene: this._sceneManager.scene,
@@ -328,4 +332,31 @@ export class ViewerCore implements IViewerCore {
     // Schedule the next frame
     this._animationFrameId = requestAnimationFrame(this._renderLoop);
   };
+
+  /**
+   * Sets up default lighting for the scene.
+   * Adds ambient light and directional lights to properly illuminate PBR materials.
+   */
+  private _setupDefaultLighting(): void {
+    const scene = this._sceneManager.scene;
+
+    // Ambient light for base illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    // Main directional light (key light)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+    mainLight.position.set(5, 10, 7.5);
+    scene.add(mainLight);
+
+    // Fill light from opposite side
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    fillLight.position.set(-5, 5, -5);
+    scene.add(fillLight);
+
+    // Hemisphere light for natural sky/ground lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+  }
 }
