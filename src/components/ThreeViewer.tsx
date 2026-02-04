@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { ViewerCore } from '../core/ViewerCore';
 import { ModelLoaderPlugin, ModelLoadResult } from '../plugins/ModelLoaderPlugin';
 import { OrbitControlsPlugin } from '../plugins/OrbitControlsPlugin';
+import { GridHelperPlugin, GridPlane } from '../plugins/GridHelperPlugin';
 import { ThreeInstanceProvider } from '../context/ThreeInstanceProvider';
 import { ThreeViewerHandle, ThreeInstanceContextValue, initialContextValue } from '../types/instance';
 
@@ -12,6 +13,22 @@ import { ThreeViewerHandle, ThreeInstanceContextValue, initialContextValue } fro
 export interface ZoomLimits {
   min?: number;
   max?: number;
+}
+
+/**
+ * Grid configuration for the viewer.
+ */
+export interface GridConfig {
+  /** Show grid helper */
+  visible?: boolean;
+  /** Grid size */
+  size?: number;
+  /** Number of divisions */
+  divisions?: number;
+  /** Which plane to display the grid on: 'XY', 'XZ', or 'YZ' */
+  plane?: GridPlane;
+  /** Show axes helper (RGB = XYZ) */
+  showAxes?: boolean;
 }
 
 /**
@@ -28,6 +45,10 @@ export interface ThreeViewerProps {
   pivotPoint?: { x: number; y: number; z: number };
   /** Zoom distance limits for the camera */
   zoomLimits?: ZoomLimits;
+  /** Grid and axes helper configuration */
+  grid?: GridConfig;
+  /** Background color of the scene (hex number, CSS color string, or THREE.Color) */
+  backgroundColor?: number | string;
   /** CSS class name for the container element */
   className?: string;
   /** CSS styles for the container element */
@@ -76,12 +97,17 @@ export interface ThreeViewerProps {
  * - 6.2: THE existing callback props (onLoad, onError, onLoadingChange) SHALL continue to function
  * - 6.3: THE new ref prop SHALL be optional and not affect existing usage
  */
+/** Default background color - 3ds Max style gray */
+const DEFAULT_BACKGROUND_COLOR = 0x545454;
+
 export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
   function ThreeViewer(
     {
       modelUrl,
       pivotPoint,
       zoomLimits,
+      grid,
+      backgroundColor = DEFAULT_BACKGROUND_COLOR,
       className,
       style,
       onLoad,
@@ -96,6 +122,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
     const viewerCoreRef = useRef<ViewerCore | null>(null);
     const modelLoaderRef = useRef<ModelLoaderPlugin | null>(null);
     const orbitControlsRef = useRef<OrbitControlsPlugin | null>(null);
+    const gridHelperRef = useRef<GridHelperPlugin | null>(null);
 
     // Track disposed state for the ref API
     // Requirement 4.5: THE Instance_Accessor SHALL provide an isDisposed property to check disposal state
@@ -209,14 +236,17 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
       // Create and register plugins
       const modelLoader = new ModelLoaderPlugin();
       const orbitControls = new OrbitControlsPlugin();
+      const gridHelper = new GridHelperPlugin();
 
       viewerCoreInstance.plugins.register(modelLoader);
       viewerCoreInstance.plugins.register(orbitControls);
+      viewerCoreInstance.plugins.register(gridHelper);
 
       // Store references
       viewerCoreRef.current = viewerCoreInstance;
       modelLoaderRef.current = modelLoader;
       orbitControlsRef.current = orbitControls;
+      gridHelperRef.current = gridHelper;
 
       // Update state to trigger re-render for children with context
       setViewerCore(viewerCoreInstance);
@@ -232,6 +262,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
         viewerCoreRef.current = null;
         modelLoaderRef.current = null;
         orbitControlsRef.current = null;
+        gridHelperRef.current = null;
         setViewerCore(null);
         setIsDisposed(true);
       };
@@ -278,6 +309,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
     useEffect(() => {
       const modelLoader = modelLoaderRef.current;
       const orbitControls = orbitControlsRef.current;
+      const gridHelper = gridHelperRef.current;
 
       if (!modelLoader) {
         return;
@@ -305,19 +337,30 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
             orbitControls.setTarget(result.center);
           }
 
+          // Calculate model size for various defaults
+          const boundingBox = result.boundingBox;
+          const size = new THREE.Vector3();
+          boundingBox.getSize(size);
+          const maxDimension = Math.max(size.x, size.y, size.z);
+
           // Calculate default zoom limits based on model size if not provided
           // Requirement 3.4: Use reasonable default limits based on the model size
           if (orbitControls && !zoomLimits) {
-            const boundingBox = result.boundingBox;
-            const size = new THREE.Vector3();
-            boundingBox.getSize(size);
-            const maxDimension = Math.max(size.x, size.y, size.z);
-            
             // Set reasonable defaults: min = 10% of model size, max = 10x model size
             // Cap maxDistance to camera's far plane to prevent model from disappearing
             const cameraFar = viewerCoreRef.current?.camera.camera.far ?? 1000;
             const maxDistance = Math.min(maxDimension * 10, cameraFar * 0.9);
             orbitControls.setZoomLimits(maxDimension * 0.1, maxDistance);
+          }
+
+          // Auto-size grid based on model size (if no custom size provided)
+          if (gridHelper && (!grid || grid.size === undefined)) {
+            const gridSize = maxDimension * 3; // Grid 3x larger than model
+            gridHelper.configure({
+              size: gridSize,
+              divisions: 10,
+              axesSize: maxDimension * 1.5, // Axes 1.5x model size
+            });
           }
 
           // Invoke onLoad callback
@@ -375,6 +418,51 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
         orbitControls.setZoomLimits(min, max);
       }
     }, [zoomLimits]);
+
+    /**
+     * Handle grid prop changes.
+     * Update GridHelper configuration when it changes.
+     */
+    useEffect(() => {
+      const gridHelper = gridHelperRef.current;
+
+      if (!gridHelper) {
+        return;
+      }
+
+      if (grid) {
+        // Only pass defined values to configure
+        const config: Parameters<typeof gridHelper.configure>[0] = {};
+        if (grid.size !== undefined) config.size = grid.size;
+        if (grid.divisions !== undefined) config.divisions = grid.divisions;
+        if (grid.plane !== undefined) config.plane = grid.plane;
+        if (grid.showAxes !== undefined) config.showAxes = grid.showAxes;
+        
+        gridHelper.configure(config);
+        gridHelper.setVisible(grid.visible !== false);
+      } else {
+        // Hide grid if no config provided
+        gridHelper.setVisible(false);
+      }
+    }, [grid]);
+
+    /**
+     * Handle backgroundColor prop changes.
+     * Update scene background color when it changes.
+     */
+    useEffect(() => {
+      const vc = viewerCoreRef.current;
+      if (!vc || !vc.isInitialized) {
+        return;
+      }
+
+      const scene = vc.scene.scene;
+      if (backgroundColor !== undefined) {
+        scene.background = new THREE.Color(backgroundColor);
+      } else {
+        scene.background = new THREE.Color(DEFAULT_BACKGROUND_COLOR);
+      }
+    }, [backgroundColor, viewerCore]); // viewerCore dependency ensures this runs after initialization
 
     // Default styles for the container
     const containerStyle: React.CSSProperties = {

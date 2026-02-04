@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ThreeViewer, ModelLoadResult } from '../src';
+import React, { useState, useCallback, useEffect } from 'react';
+import { ThreeViewer, ModelLoadResult, GridConfig } from '../src';
 
 /**
  * Demo Application for ThreeViewer Component
@@ -201,6 +201,12 @@ const App: React.FC = () => {
   const [zoomMax, setZoomMax] = useState<string>('100');
   const [useZoomLimits, setUseZoomLimits] = useState<boolean>(false);
 
+  // Grid state
+  const [gridConfig, setGridConfig] = useState<GridConfig>({ visible: true, showAxes: true, plane: 'XZ' });
+  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [showAxes, setShowAxes] = useState<boolean>(true);
+  const [gridPlane, setGridPlane] = useState<'XY' | 'XZ' | 'YZ'>('XZ');
+
   // Loading and error state
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -252,6 +258,17 @@ const App: React.FC = () => {
       setZoomLimits(undefined);
     }
   }, [useZoomLimits, zoomMin, zoomMax]);
+
+  // Update grid config when settings change
+  useEffect(() => {
+    setGridConfig({
+      visible: showGrid,
+      showAxes: showAxes,
+      plane: gridPlane,
+      size: 10,
+      divisions: 10,
+    });
+  }, [showGrid, showAxes, gridPlane]);
 
   // Reset to defaults
   const handleReset = useCallback(() => {
@@ -423,6 +440,43 @@ const App: React.FC = () => {
             </button>
           </section>
 
+          {/* Grid & Axes Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Grid & Axes</h2>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={showGrid}
+                  onChange={(e) => setShowGrid(e.target.checked)}
+                />
+                Show Grid
+              </label>
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={showAxes}
+                  onChange={(e) => setShowAxes(e.target.checked)}
+                />
+                Show Axes (R=X, G=Y, B=Z)
+              </label>
+            </div>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Grid Plane</label>
+              <select
+                value={gridPlane}
+                onChange={(e) => setGridPlane(e.target.value as 'XY' | 'XZ' | 'YZ')}
+                style={{ ...styles.input, cursor: 'pointer' }}
+              >
+                <option value="XZ">XZ (Ground)</option>
+                <option value="XY">XY (Vertical)</option>
+                <option value="YZ">YZ (Side)</option>
+              </select>
+            </div>
+          </section>
+
           {/* Status Section */}
           <section style={styles.section}>
             <h2 style={styles.sectionTitle}>Status</h2>
@@ -483,6 +537,8 @@ const App: React.FC = () => {
               modelUrl={modelUrl}
               pivotPoint={pivotPoint}
               zoomLimits={zoomLimits}
+              grid={gridConfig}
+              backgroundColor={0x545454}
               onLoad={handleLoadSuccess}
               onError={handleLoadError}
               onLoadingChange={handleLoadingChange}

@@ -35,11 +35,19 @@ export {
   type OrbitControlsConfig
 } from './plugins/OrbitControlsPlugin';
 
+export {
+  GridHelperPlugin,
+  type IGridHelperPlugin,
+  type GridHelperConfig,
+  type GridPlane
+} from './plugins/GridHelperPlugin';
+
 // React Component exports
 export {
   ThreeViewer,
   type ThreeViewerProps,
-  type ZoomLimits
+  type ZoomLimits,
+  type GridConfig
 } from './components/ThreeViewer';
 
 // Instance Access API exports
