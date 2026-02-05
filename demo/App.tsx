@@ -241,6 +241,7 @@ const App: React.FC = () => {
   // Camera movement state
   const [enableCameraMovement, setEnableCameraMovement] = useState<boolean>(true);
   const [cameraMovementSpeed, setCameraMovementSpeed] = useState<number>(5.0);
+  const [isCSMode, setIsCSMode] = useState<boolean>(false);
 
   // Camera Animation state
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
@@ -362,21 +363,25 @@ const App: React.FC = () => {
       plugin.stop();
       setIsAnimating(false);
     } else {
-      // Create a circular path
+      // Create a dynamic orbital path that varies in height
       const center = loadResult ? loadResult.center : new THREE.Vector3(0, 0, 0);
-      const radius = loadResult ? 
-        Math.max(
-          loadResult.boundingBox.max.x - loadResult.boundingBox.min.x,
-          loadResult.boundingBox.max.z - loadResult.boundingBox.min.z
-        ) * 2 : 10;
+      const size = loadResult ? loadResult.boundingBox.getSize(new THREE.Vector3()) : new THREE.Vector3(10, 10, 10);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      // Increase radius to ensure full visibility
+      const radius = maxDim * 2.0;
       
       const points: THREE.Vector3[] = [];
-      const segmentCount = 8;
+      const segmentCount = 120; // Increase segments for smoother movement
+      
       for (let i = 0; i <= segmentCount; i++) {
         const angle = (i / segmentCount) * Math.PI * 2;
+        // Oscillate height using a sine wave to show both top and bottom perspectives
+        // sin(angle * 2) creates two high points and two low points per revolution
+        const heightOffset = Math.sin(angle * 2) * (maxDim * 0.8);
+        
         points.push(new THREE.Vector3(
           center.x + Math.cos(angle) * radius,
-          center.y + radius * 0.5, // slightly elevated
+          center.y + heightOffset,
           center.z + Math.sin(angle) * radius
         ));
       }
@@ -484,6 +489,13 @@ const App: React.FC = () => {
       cameraMovementPluginRef.current.setMoveSpeed(cameraMovementSpeed);
     }
   }, [cameraMovementSpeed]);
+
+  // Sync flyMode state with plugin
+  useEffect(() => {
+    if (cameraMovementPluginRef.current) {
+      cameraMovementPluginRef.current.setFlyMode(isCSMode);
+    }
+  }, [isCSMode]);
 
   // Cleanup local file manager on component unmount
   useEffect(() => {
@@ -817,6 +829,17 @@ const App: React.FC = () => {
                 Enable WASD Control
               </label>
             </div>
+            <div style={styles.inputGroup}>
+              <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={isCSMode}
+                  onChange={(e) => setIsCSMode(e.target.checked)}
+                  disabled={!enableCameraMovement || isAnimating}
+                />
+                Enable CS Mode (Fly)
+              </label>
+            </div>
             <div style={{ ...styles.inputGroup, opacity: enableCameraMovement ? 1 : 0.5 }}>
               <label style={styles.label}>
                 Movement Speed: {cameraMovementSpeed.toFixed(1)}
@@ -919,7 +942,7 @@ const App: React.FC = () => {
               <p style={{ marginTop: '12px', borderTop: '1px solid #0f3460', paddingTop: '12px' }}>
                 <strong>Keyboard Movement:</strong>
               </p>
-              <p><strong>W / S:</strong> Move forward / backward</p>
+              <p><strong>W / S:</strong> Move forward / backward {isCSMode ? '(View Direction)' : '(Ground)'}</p>
               <p><strong>A / D:</strong> Move left / right</p>
               <p><strong>Shift:</strong> Move up</p>
               <p><strong>Ctrl:</strong> Move down</p>
