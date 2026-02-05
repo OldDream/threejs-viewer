@@ -48,6 +48,11 @@ export {
   type CameraMovementConfig
 } from './plugins/CameraMovementPlugin';
 
+export {
+  CameraPathAnimationPlugin,
+  type CameraPathAnimationConfig
+} from './plugins/CameraPathAnimationPlugin';
+
 // React Component exports
 export {
   ThreeViewer,

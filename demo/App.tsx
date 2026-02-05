@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { ThreeViewer, ModelLoadResult, GridConfig, CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin } from '../src';
+import * as THREE from 'three';
+import { ThreeViewer, ModelLoadResult, GridConfig, CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin, CameraPathAnimationPlugin, CameraPathAnimationConfig } from '../src';
 import { LocalFileManager } from '../src/utils/LocalFileManager';
 
 /**
@@ -202,6 +203,7 @@ const App: React.FC = () => {
   
   // CameraMovementPlugin instance ref
   const cameraMovementPluginRef = useRef<ICameraMovementPlugin | null>(null);
+  const cameraPathAnimationPluginRef = useRef<CameraPathAnimationPlugin | null>(null);
 
   // Model URL state
   const [modelUrl, setModelUrl] = useState<string>(DEFAULT_MODEL_URL);
@@ -239,6 +241,10 @@ const App: React.FC = () => {
   // Camera movement state
   const [enableCameraMovement, setEnableCameraMovement] = useState<boolean>(true);
   const [cameraMovementSpeed, setCameraMovementSpeed] = useState<number>(5.0);
+
+  // Camera Animation state
+  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [animationViewMode, setAnimationViewMode] = useState<'target' | 'fixed' | 'path'>('target');
 
   // Loading and error state
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -347,6 +353,55 @@ const App: React.FC = () => {
     setIsLoading(loading);
   }, []);
 
+  // Handle Camera Animation Toggle
+  const handleToggleAnimation = useCallback(() => {
+    const plugin = cameraPathAnimationPluginRef.current;
+    if (!plugin) return;
+
+    if (isAnimating) {
+      plugin.stop();
+      setIsAnimating(false);
+    } else {
+      // Create a circular path
+      const center = loadResult ? loadResult.center : new THREE.Vector3(0, 0, 0);
+      const radius = loadResult ? 
+        Math.max(
+          loadResult.boundingBox.max.x - loadResult.boundingBox.min.x,
+          loadResult.boundingBox.max.z - loadResult.boundingBox.min.z
+        ) * 2 : 10;
+      
+      const points: THREE.Vector3[] = [];
+      const segmentCount = 8;
+      for (let i = 0; i <= segmentCount; i++) {
+        const angle = (i / segmentCount) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          center.x + Math.cos(angle) * radius,
+          center.y + radius * 0.5, // slightly elevated
+          center.z + Math.sin(angle) * radius
+        ));
+      }
+
+      const config: CameraPathAnimationConfig = {
+        pathPoints: points,
+        duration: 15,
+        loop: true,
+        autoPlay: true
+      };
+
+      // Configure View Mode
+      if (animationViewMode === 'target') {
+        config.target = center;
+      } else if (animationViewMode === 'fixed') {
+        config.fixedDirection = new THREE.Vector3(0, -0.5, -1).normalize();
+      } else if (animationViewMode === 'path') {
+        config.lookAlongPath = true;
+      }
+
+      plugin.configure(config);
+      setIsAnimating(true);
+    }
+  }, [isAnimating, loadResult, animationViewMode]);
+
   // Apply pivot point
   const handleApplyPivotPoint = useCallback(() => {
     if (usePivotPoint) {
@@ -391,10 +446,16 @@ const App: React.FC = () => {
     viewerCore.plugins.register(plugin);
     cameraMovementPluginRef.current = plugin;
 
+    // Create and register CameraPathAnimationPlugin
+    const pathPlugin = new CameraPathAnimationPlugin();
+    viewerCore.plugins.register(pathPlugin);
+    cameraPathAnimationPluginRef.current = pathPlugin;
+
     // Connect to OrbitControls target for FPS-style movement
     const orbitPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
     if (orbitPlugin) {
       plugin.setOrbitControlsTarget(orbitPlugin.controls.target);
+      pathPlugin.setOrbitControlsPlugin(orbitPlugin);
     }
 
     // Cleanup: unregister plugin when component unmounts
@@ -402,6 +463,10 @@ const App: React.FC = () => {
       if (cameraMovementPluginRef.current) {
         viewerCore.plugins.unregister(cameraMovementPluginRef.current.name);
         cameraMovementPluginRef.current = null;
+      }
+      if (cameraPathAnimationPluginRef.current) {
+        viewerCore.plugins.unregister(cameraPathAnimationPluginRef.current.name);
+        cameraPathAnimationPluginRef.current = null;
       }
     };
   }, [modelUrl]); // Re-register when modelUrl changes (viewer re-initializes)
@@ -429,6 +494,12 @@ const App: React.FC = () => {
 
   // Reset to defaults
   const handleReset = useCallback(() => {
+    // Stop animation if running
+    if (cameraPathAnimationPluginRef.current && isAnimating) {
+      cameraPathAnimationPluginRef.current.stop();
+      setIsAnimating(false);
+    }
+    
     setInputUrl(DEFAULT_MODEL_URL);
     setModelUrl(DEFAULT_MODEL_URL);
     setPivotX('0');
@@ -453,7 +524,7 @@ const App: React.FC = () => {
     setSelectedFolderFiles([]);
     
     localFileManager.cleanup();
-  }, [localFileManager]);
+  }, [localFileManager, isAnimating]);
 
   return (
     <div style={styles.container}>
@@ -741,8 +812,9 @@ const App: React.FC = () => {
                   type="checkbox"
                   checked={enableCameraMovement}
                   onChange={(e) => setEnableCameraMovement(e.target.checked)}
+                  disabled={isAnimating}
                 />
-                Enable Camera Movement
+                Enable WASD Control
               </label>
             </div>
             <div style={{ ...styles.inputGroup, opacity: enableCameraMovement ? 1 : 0.5 }}>
@@ -756,16 +828,42 @@ const App: React.FC = () => {
                 step="1"
                 value={cameraMovementSpeed}
                 onChange={(e) => setCameraMovementSpeed(parseFloat(e.target.value))}
-                disabled={!enableCameraMovement}
+                disabled={!enableCameraMovement || isAnimating}
                 style={{
                   width: '100%',
-                  cursor: enableCameraMovement ? 'pointer' : 'not-allowed',
+                  cursor: enableCameraMovement && !isAnimating ? 'pointer' : 'not-allowed',
                 }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#666' }}>
-                <span>0.5</span>
-                <span>300</span>
-              </div>
+            </div>
+          </section>
+
+          {/* Camera Path Animation Section */}
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Camera Path Animation</h2>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>View Mode</label>
+              <select
+                value={animationViewMode}
+                onChange={(e) => setAnimationViewMode(e.target.value as 'target' | 'fixed' | 'path')}
+                disabled={isAnimating}
+                style={{ ...styles.input, cursor: isAnimating ? 'not-allowed' : 'pointer' }}
+              >
+                <option value="target">Look at Center/Model</option>
+                <option value="fixed">Fixed Direction</option>
+                <option value="path">Look Along Path</option>
+              </select>
+            </div>
+            <button
+              onClick={handleToggleAnimation}
+              style={{
+                ...styles.button,
+                backgroundColor: isAnimating ? '#d63850' : '#4caf50',
+              }}
+            >
+              {isAnimating ? 'Stop Animation' : 'Start Animation'}
+            </button>
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#a0a0a0' }}>
+              {isAnimating ? 'Orbit Controls disabled during animation' : 'Path is automatically generated around the model'}
             </div>
           </section>
 
