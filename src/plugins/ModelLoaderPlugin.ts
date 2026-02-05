@@ -72,6 +72,7 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
     error: null,
   };
   private _isDisposed: boolean = false;
+  private _loadRequestId: number = 0;
 
   constructor() {
     this._loader = new GLTFLoader();
@@ -127,6 +128,9 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
       this.unload();
     }
 
+    // Generate a new request ID
+    const requestId = ++this._loadRequestId;
+
     // Requirement 1.4: Update loading state
     this._loadingState = {
       isLoading: true,
@@ -138,6 +142,13 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
       // Load the model
       const gltf = await this._loadGLTF(url);
       
+      // Check if this request is still the latest one
+      if (requestId !== this._loadRequestId) {
+        // If not, dispose of the loaded model and throw a cancellation error
+        this._disposeObject(gltf.scene);
+        throw new Error('Model loading cancelled due to new request');
+      }
+
       // Requirement 1.1: Add the model to the scene
       const model = gltf.scene;
       this._context.scene.add(model);
@@ -164,6 +175,12 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
         center,
       };
     } catch (error) {
+      // Check if this request is still the latest one
+      if (requestId !== this._loadRequestId) {
+        // If not, just rethrow (or ignore, but rethrowing keeps the promise chain consistent)
+        throw error;
+      }
+
       // Requirement 1.3: Emit an error event with descriptive error information
       const loadError = error instanceof Error 
         ? error 

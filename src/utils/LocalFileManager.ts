@@ -17,10 +17,19 @@ interface GLTFImage {
 }
 
 /**
+ * GLTF Buffer definition (subset of GLTF specification)
+ */
+interface GLTFBuffer {
+  uri?: string;
+  byteLength: number;
+}
+
+/**
  * GLTF JSON structure (subset of GLTF specification)
  */
 interface GLTFJson {
   images?: GLTFImage[];
+  buffers?: GLTFBuffer[];
   [key: string]: unknown;
 }
 
@@ -104,19 +113,45 @@ export class LocalFileManager {
   }
 
   /**
+   * Resolve buffer paths in GLTF JSON
+   * 
+   * Iterates through the GLTF buffers array and replaces buffer file paths
+   * with their corresponding Object URLs from the resourceUrlMap.
+   * 
+   * @param gltfJson - The parsed GLTF JSON object
+   * @param resourceUrlMap - Map of filenames to their Object URLs
+   */
+  private resolveBufferPaths(
+    gltfJson: GLTFJson,
+    resourceUrlMap: Map<string, string>
+  ): void {
+    if (gltfJson.buffers && Array.isArray(gltfJson.buffers)) {
+      for (const buffer of gltfJson.buffers) {
+        if (buffer.uri) {
+          const fileName = this.extractFileName(buffer.uri);
+          const objectUrl = resourceUrlMap.get(fileName);
+          if (objectUrl) {
+            buffer.uri = objectUrl;
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Resolve texture paths in GLTF JSON
    * 
    * Iterates through the GLTF images array and replaces texture file paths
-   * with their corresponding Object URLs from the textureUrlMap.
+   * with their corresponding Object URLs from the resourceUrlMap.
    * 
    * @param gltfJson - The parsed GLTF JSON object
-   * @param textureUrlMap - Map of texture filenames to their Object URLs
+   * @param resourceUrlMap - Map of filenames to their Object URLs
    * 
    * Requirements: 3.4, 4.1, 4.2, 4.3
    */
   private resolveTexturePaths(
     gltfJson: GLTFJson,
-    textureUrlMap: Map<string, string>
+    resourceUrlMap: Map<string, string>
   ): void {
     // GLTF specification: images array contains all texture references
     if (gltfJson.images && Array.isArray(gltfJson.images)) {
@@ -127,7 +162,7 @@ export class LocalFileManager {
           const fileName = this.extractFileName(image.uri);
           
           // Look up the Object URL for this filename
-          const objectUrl = textureUrlMap.get(fileName);
+          const objectUrl = resourceUrlMap.get(fileName);
           
           if (objectUrl) {
             // Replace with Object URL if found
@@ -141,12 +176,38 @@ export class LocalFileManager {
   }
 
   /**
+   * Load a model from a folder (list of files)
+   * 
+   * Automatically detects the main model file (.gltf or .glb) and associates
+   * other files (textures, buffers) as resources.
+   * 
+   * @param files - List of files from the folder
+   * @returns Promise<LoadResult>
+   */
+  async loadModelFromFolder(files: File[]): Promise<LoadResult> {
+    // Find the main model file (.gltf or .glb)
+    const modelFile = files.find(f => {
+      const ext = this.getFileExtension(f.name);
+      return ext === 'gltf' || ext === 'glb';
+    });
+
+    if (!modelFile) {
+      throw new Error('No .gltf or .glb file found in the selected folder.');
+    }
+
+    // Filter out the model file itself from resources
+    const resourceFiles = files.filter(f => f !== modelFile);
+    
+    return this.loadModelFromFiles(modelFile, resourceFiles);
+  }
+
+  /**
    * Load a model from local files
    * 
    * Main entry point for loading local model files. Handles both GLB and GLTF formats.
    * 
    * @param file - The model file to load (GLTF or GLB)
-   * @param textureFiles - Optional array of texture files (only used for GLTF)
+   * @param resourceFiles - Optional array of resource files (textures, buffers)
    * @returns Promise<LoadResult> - Contains the model URL and cleanup function
    * @throws Error if file format is unsupported or loading fails
    * 
@@ -154,7 +215,7 @@ export class LocalFileManager {
    */
   async loadModelFromFiles(
     file: File,
-    textureFiles: File[] = []
+    resourceFiles: File[] = []
   ): Promise<LoadResult> {
     try {
       // Clean up previous resources before loading new model
@@ -170,7 +231,7 @@ export class LocalFileManager {
         return await this.loadGLB(file);
       } else if (fileExtension === 'gltf') {
         // Load GLTF format (with external texture dependencies)
-        return await this.loadGLTF(file, textureFiles);
+        return await this.loadGLTF(file, resourceFiles);
       } else {
         // Requirement 6.1: Display error for unsupported formats
         throw new Error(
@@ -211,17 +272,17 @@ export class LocalFileManager {
   }
 
   /**
-   * Load a GLTF format model file with texture dependencies
+   * Load a GLTF format model file with texture and buffer dependencies
    * 
-   * GLTF files reference external texture files. This method:
+   * GLTF files reference external texture and buffer files. This method:
    * 1. Reads and parses the GLTF JSON
-   * 2. Creates Object URLs for all texture files
-   * 3. Maps texture filenames to their Object URLs
+   * 2. Creates Object URLs for all resource files (textures, buffers)
+   * 3. Maps filenames to their Object URLs
    * 4. Modifies the GLTF JSON to use Object URLs instead of file paths
    * 5. Creates a new Blob with the modified GLTF and returns its Object URL
    * 
    * @param file - The GLTF file to load
-   * @param textureFiles - Array of texture image files referenced by the GLTF
+   * @param resourceFiles - Array of resource files (images, buffers) referenced by the GLTF
    * @returns Promise<LoadResult> - Contains the model URL and cleanup function
    * @throws Error if file reading fails or JSON parsing fails
    * 
@@ -229,7 +290,7 @@ export class LocalFileManager {
    */
   private async loadGLTF(
     file: File,
-    textureFiles: File[]
+    resourceFiles: File[]
   ): Promise<LoadResult> {
     try {
       // 1. Read GLTF file content
@@ -243,16 +304,17 @@ export class LocalFileManager {
         throw new Error('Invalid GLTF file: Failed to parse JSON');
       }
 
-      // 3. Create Object URLs for each texture file
-      const textureUrlMap = new Map<string, string>();
-      for (const textureFile of textureFiles) {
-        const url = URL.createObjectURL(textureFile);
+      // 3. Create Object URLs for each resource file
+      const resourceUrlMap = new Map<string, string>();
+      for (const resourceFile of resourceFiles) {
+        const url = URL.createObjectURL(resourceFile);
         this.objectUrls.push(url);
-        textureUrlMap.set(textureFile.name, url);
+        resourceUrlMap.set(resourceFile.name, url);
       }
 
-      // 4. Resolve texture paths - map file paths to Object URLs
-      this.resolveTexturePaths(gltfJson, textureUrlMap);
+      // 4. Resolve paths - map file paths to Object URLs
+      this.resolveTexturePaths(gltfJson, resourceUrlMap);
+      this.resolveBufferPaths(gltfJson, resourceUrlMap);
 
       // 5. Create modified GLTF Blob and Object URL
       const modifiedGltfBlob = new Blob(

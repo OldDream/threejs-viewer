@@ -247,6 +247,15 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
   private _orbitControlsTarget: THREE.Vector3 | null = null;
 
   /**
+   * 临时向量，用于计算移动方向，避免在 update 循环中创建新对象
+   */
+  private _tempMovement = new THREE.Vector3();
+  private _tempForward = new THREE.Vector3();
+  private _tempRight = new THREE.Vector3();
+  private _tempWorldUp = new THREE.Vector3(0, 1, 0);
+  private _tempCameraUp = new THREE.Vector3(0, 1, 0);
+
+  /**
    * 初始化插件
    * 在插件被注册到 PluginSystem 时调用
    * 
@@ -539,15 +548,16 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
    * - 1.7: WHEN 用户同时按下多个移动键 THEN Camera_Movement_Plugin SHALL 将各方向的移动向量叠加计算最终移动方向
    */
   calculateMovementVector(camera: THREE.Camera): THREE.Vector3 {
-    const movement = new THREE.Vector3(0, 0, 0);
+    // 重置临时向量
+    this._tempMovement.set(0, 0, 0);
 
     // 如果没有任何移动键被按下，返回零向量
     if (!this.isMoving()) {
-      return movement;
+      return this._tempMovement;
     }
 
     // 获取相机前向量（相机看向的方向）
-    const forward = new THREE.Vector3();
+    const forward = this._tempForward;
     camera.getWorldDirection(forward);
 
     // 将前向量投影到水平面（Y=0）
@@ -557,7 +567,7 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
     // 使用相机的上向量来确定前方向
     if (forward.lengthSq() < 0.0001) {
       // 当相机垂直向上或向下看时，使用相机的上向量的水平投影作为前向量
-      const cameraUp = new THREE.Vector3(0, 1, 0);
+      const cameraUp = this._tempCameraUp.set(0, 1, 0);
       cameraUp.applyQuaternion(camera.quaternion);
       forward.set(cameraUp.x, 0, cameraUp.z);
     }
@@ -568,8 +578,8 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
     }
 
     // 计算右向量（前向量与世界上向量的叉积）
-    const worldUp = new THREE.Vector3(0, 1, 0);
-    const right = new THREE.Vector3();
+    const worldUp = this._tempWorldUp; // 已经是 (0, 1, 0)
+    const right = this._tempRight;
     right.crossVectors(forward, worldUp);
     
     // 归一化右向量
@@ -580,32 +590,32 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
     // 根据移动状态组合移动向量
     // 水平移动（WASD）
     if (this._movementState.forward) {
-      movement.add(forward);
+      this._tempMovement.add(forward);
     }
     if (this._movementState.backward) {
-      movement.sub(forward);
+      this._tempMovement.sub(forward);
     }
     if (this._movementState.right) {
-      movement.add(right);
+      this._tempMovement.add(right);
     }
     if (this._movementState.left) {
-      movement.sub(right);
+      this._tempMovement.sub(right);
     }
 
     // 垂直移动（Shift/Ctrl）
     if (this._movementState.up) {
-      movement.y += 1;
+      this._tempMovement.y += 1;
     }
     if (this._movementState.down) {
-      movement.y -= 1;
+      this._tempMovement.y -= 1;
     }
 
     // 归一化最终移动向量（如果有移动）
-    if (movement.lengthSq() > 0) {
-      movement.normalize();
+    if (this._tempMovement.lengthSq() > 0) {
+      this._tempMovement.normalize();
     }
 
-    return movement;
+    return this._tempMovement;
   }
 
   /**

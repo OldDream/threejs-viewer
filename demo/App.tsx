@@ -213,6 +213,10 @@ const App: React.FC = () => {
   const [selectedTextureFiles, setSelectedTextureFiles] = useState<File[]>([]);
   const [isLocalFile, setIsLocalFile] = useState<boolean>(false);
 
+  // Folder loading state
+  const [selectedFolderFiles, setSelectedFolderFiles] = useState<File[]>([]);
+  const [isFolderMode, setIsFolderMode] = useState<boolean>(false);
+
   // Pivot point state
   const [pivotPoint, setPivotPoint] = useState<{ x: number; y: number; z: number } | undefined>(undefined);
   const [pivotX, setPivotX] = useState<string>('0');
@@ -247,7 +251,11 @@ const App: React.FC = () => {
     setLoadResult(null);
     
     try {
-      if (isLocalFile && selectedModelFile) {
+      if (isFolderMode && selectedFolderFiles.length > 0) {
+        // Load from local folder
+        const result = await localFileManager.loadModelFromFolder(selectedFolderFiles);
+        setModelUrl(result.modelUrl);
+      } else if (isLocalFile && selectedModelFile) {
         // Load from local file
         const result = await localFileManager.loadModelFromFiles(
           selectedModelFile,
@@ -261,7 +269,24 @@ const App: React.FC = () => {
     } catch (err) {
       setError(err as Error);
     }
-  }, [isLocalFile, selectedModelFile, selectedTextureFiles, inputUrl, localFileManager]);
+  }, [isLocalFile, selectedModelFile, selectedTextureFiles, isFolderMode, selectedFolderFiles, inputUrl, localFileManager]);
+
+  // Handle folder selection
+  const handleFolderSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      setSelectedFolderFiles(files);
+      setIsFolderMode(true);
+      
+      // Clear single file mode state
+      setIsLocalFile(false);
+      setSelectedModelFile(null);
+      setSelectedTextureFiles([]);
+      
+      // Display info in URL input box
+      setInputUrl(`[Local Folder] ${files.length} files selected`);
+    }
+  }, []);
 
   // Handle model file selection
   const handleModelFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,6 +294,10 @@ const App: React.FC = () => {
     if (file) {
       setSelectedModelFile(file);
       setIsLocalFile(true);
+      
+      // Clear folder mode state
+      setIsFolderMode(false);
+      setSelectedFolderFiles([]);
       
       // Display file name in URL input box
       setInputUrl(`[Local File] ${file.name}`);
@@ -294,13 +323,13 @@ const App: React.FC = () => {
     setError(null);
     
     // Cleanup Object URLs after successful load (they're no longer needed)
-    if (isLocalFile) {
+    if (isLocalFile || isFolderMode) {
       // Use a small delay to ensure the model is fully loaded
       setTimeout(() => {
         localFileManager.cleanup();
       }, 1000);
     }
-  }, [isLocalFile, localFileManager]);
+  }, [isLocalFile, isFolderMode, localFileManager]);
 
   // Handle model load error
   const handleLoadError = useCallback((err: Error) => {
@@ -308,10 +337,10 @@ const App: React.FC = () => {
     setLoadResult(null);
     
     // Cleanup Object URLs on error
-    if (isLocalFile) {
+    if (isLocalFile || isFolderMode) {
       localFileManager.cleanup();
     }
-  }, [isLocalFile, localFileManager]);
+  }, [isLocalFile, isFolderMode, localFileManager]);
 
   // Handle loading state change
   const handleLoadingChange = useCallback((loading: boolean) => {
@@ -418,6 +447,11 @@ const App: React.FC = () => {
     setIsLocalFile(false);
     setSelectedModelFile(null);
     setSelectedTextureFiles([]);
+    
+    // Clear folder mode state
+    setIsFolderMode(false);
+    setSelectedFolderFiles([]);
+    
     localFileManager.cleanup();
   }, [localFileManager]);
 
@@ -449,16 +483,38 @@ const App: React.FC = () => {
                 onChange={(e) => {
                   setInputUrl(e.target.value);
                   // Clear local file selection when user types URL
-                  if (!e.target.value.startsWith('[Local File]')) {
+                  if (!e.target.value.startsWith('[Local File]') && !e.target.value.startsWith('[Local Folder]')) {
                     setIsLocalFile(false);
                     setSelectedModelFile(null);
                     setSelectedTextureFiles([]);
+                    setIsFolderMode(false);
+                    setSelectedFolderFiles([]);
                   }
                 }}
                 placeholder="Enter model URL..."
                 style={styles.input}
               />
             </div>
+            <div style={{ marginBottom: '12px' }}>
+              <input
+                type="file"
+                id="folderInput"
+                // @ts-expect-error webkitdirectory is not a standard attribute
+                webkitdirectory=""
+                directory=""
+                multiple
+                onChange={handleFolderSelect}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => document.getElementById('folderInput')?.click()}
+                style={styles.buttonSecondary}
+                title="Select a folder containing model and all assets"
+              >
+                📂 Choose Folder
+              </button>
+            </div>
+
             <div style={{ marginBottom: '12px' }}>
               <input
                 type="file"

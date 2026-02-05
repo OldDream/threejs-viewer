@@ -142,6 +142,42 @@ describe('LocalFileManager', () => {
       mockRevokeObjectURL.mockRestore();
     });
 
+    describe('loadModelFromFolder', () => {
+      it('should automatically detect main GLTF file and load it', async () => {
+        const gltfContent = JSON.stringify({ images: [{ uri: 'texture.png' }] });
+        const gltfFile = createMockFile(gltfContent, 'model.gltf', 'model/gltf+json');
+        const textureFile = new File(['texture'], 'texture.png', { type: 'image/png' });
+        
+        const files = [textureFile, gltfFile]; // Order shouldn't matter
+        
+        const result = await manager.loadModelFromFolder(files);
+        
+        // Should create URLs for texture, then modified GLTF
+        expect(mockCreateObjectURL).toHaveBeenCalledTimes(2);
+        expect(result.modelUrl).toBe('blob:mock-url-2');
+      });
+
+      it('should automatically detect main GLB file and load it', async () => {
+        const glbFile = new File(['glb'], 'model.glb', { type: 'model/gltf-binary' });
+        const extraFile = new File(['extra'], 'readme.txt', { type: 'text/plain' });
+        
+        const files = [extraFile, glbFile];
+        
+        const result = await manager.loadModelFromFolder(files);
+        
+        expect(result.modelUrl).toBe('blob:mock-url-1');
+      });
+
+      it('should throw error if no model file found', async () => {
+        const file1 = new File(['1'], 'test.txt', { type: 'text/plain' });
+        const file2 = new File(['2'], 'image.png', { type: 'image/png' });
+        
+        await expect(manager.loadModelFromFolder([file1, file2])).rejects.toThrow(
+          'No .gltf or .glb file found in the selected folder.'
+        );
+      });
+    });
+
     describe('GLB file loading', () => {
       it('should load GLB file and create single Object URL', async () => {
         // Create a mock GLB file
@@ -219,6 +255,29 @@ describe('LocalFileManager', () => {
         
         expect(modifiedGltf.images[0].uri).toBe('blob:mock-url-1'); // diffuse.png
         expect(modifiedGltf.images[1].uri).toBe('blob:mock-url-2'); // normal.jpg
+      });
+
+      it('should resolve buffer paths in GLTF JSON', async () => {
+        const gltfContent = JSON.stringify({
+          buffers: [
+            { uri: 'data.bin', byteLength: 100 }
+          ]
+        });
+        const gltfFile = createMockFile(gltfContent, 'model.gltf', 'model/gltf+json');
+        const binFile = new File(['mock binary'], 'data.bin', { type: 'application/octet-stream' });
+
+        await manager.loadModelFromFiles(gltfFile, [binFile]);
+
+        // Verify buffer path resolution
+        const modifiedGltfBlob = mockCreateObjectURL.mock.calls[1][0];
+        const reader = new FileReader();
+        const blobText = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsText(modifiedGltfBlob);
+        });
+        const modifiedGltf = JSON.parse(blobText);
+        
+        expect(modifiedGltf.buffers[0].uri).toBe('blob:mock-url-1'); // data.bin resolved
       });
 
       it('should handle GLTF with missing textures gracefully', async () => {

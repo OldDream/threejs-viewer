@@ -321,6 +321,8 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
         return;
       }
 
+      let isCancelled = false;
+
       // Notify loading started
       onLoadingChangeRef.current?.(true);
 
@@ -328,6 +330,8 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
       modelLoader
         .load(modelUrl)
         .then((result) => {
+          if (isCancelled) return;
+
           // Notify loading completed
           onLoadingChangeRef.current?.(false);
 
@@ -367,6 +371,8 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
           onLoadRef.current?.(result);
         })
         .catch((error) => {
+          if (isCancelled) return;
+
           // Notify loading completed (with error)
           onLoadingChangeRef.current?.(false);
 
@@ -374,6 +380,10 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
           const loadError = error instanceof Error ? error : new Error(String(error));
           onErrorRef.current?.(loadError);
         });
+
+      return () => {
+        isCancelled = true;
+      };
     }, [modelUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /**
