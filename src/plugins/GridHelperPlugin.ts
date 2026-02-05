@@ -75,7 +75,7 @@ export class GridHelperPlugin implements IGridHelperPlugin {
     // Remove existing grid
     if (this._gridHelper) {
       this._context.scene.remove(this._gridHelper);
-      this._gridHelper.dispose();
+      this._disposeHelper(this._gridHelper);
     }
 
     // Create new grid
@@ -98,12 +98,34 @@ export class GridHelperPlugin implements IGridHelperPlugin {
     // Remove existing axes
     if (this._axesHelper) {
       this._context.scene.remove(this._axesHelper);
-      this._axesHelper.dispose();
+      this._disposeHelper(this._axesHelper);
     }
 
     if (this._config.showAxes) {
       this._axesHelper = new THREE.AxesHelper(this._config.axesSize);
       this._context.scene.add(this._axesHelper);
+    }
+  }
+
+  private _disposeHelper(helper: THREE.Object3D): void {
+    if (!helper) return;
+
+    const disposable = helper as THREE.Object3D & {
+      geometry?: THREE.BufferGeometry;
+      material?: THREE.Material | THREE.Material[];
+    };
+
+    if (disposable.geometry) {
+      disposable.geometry.dispose();
+    }
+
+    if (disposable.material) {
+      const material = disposable.material;
+      if (Array.isArray(material)) {
+        material.forEach((m) => m.dispose());
+      } else {
+        material.dispose();
+      }
     }
   }
 
@@ -152,9 +174,7 @@ export class GridHelperPlugin implements IGridHelperPlugin {
     if (this._gridHelper) {
       this._gridHelper.visible = visible;
     }
-    if (this._axesHelper) {
-      this._axesHelper.visible = visible;
-    }
+    // Axes visibility is controlled independently by configuration
   }
 
   setPlane(plane: GridPlane): void {
@@ -167,22 +187,18 @@ export class GridHelperPlugin implements IGridHelperPlugin {
     this._createAxes();
   }
 
-  update(_deltaTime: number): void {
-    // No update needed for static helpers
-  }
-
   dispose(): void {
     if (this._isDisposed) return;
 
     if (this._gridHelper && this._context) {
       this._context.scene.remove(this._gridHelper);
-      this._gridHelper.dispose();
+      this._disposeHelper(this._gridHelper);
       this._gridHelper = null;
     }
 
     if (this._axesHelper && this._context) {
       this._context.scene.remove(this._axesHelper);
-      this._axesHelper.dispose();
+      this._disposeHelper(this._axesHelper);
       this._axesHelper = null;
     }
 

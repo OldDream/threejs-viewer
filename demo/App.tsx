@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ThreeViewer, ModelLoadResult, GridConfig, CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin } from '../src';
+import { LocalFileManager } from '../src/utils/LocalFileManager';
 
 /**
  * Demo Application for ThreeViewer Component
@@ -18,7 +19,7 @@ import { ThreeViewer, ModelLoadResult, GridConfig, CameraMovementPlugin, ICamera
 const DEFAULT_MODEL_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/refs/heads/main/2.0/2CylinderEngine/glTF/2CylinderEngine.gltf';
 
 // Demo styles
-const styles: Record<string, React.CSSProperties> = {
+const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -109,6 +110,18 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'background-color 0.2s, transform 0.1s',
   },
+  buttonSecondary: {
+    width: '100%',
+    padding: '10px 14px',
+    fontSize: '13px',
+    fontWeight: 500,
+    backgroundColor: '#0f3460',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
   buttonHover: {
     backgroundColor: '#d63850',
   },
@@ -173,7 +186,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: '#666',
   },
-};
+} as const satisfies Record<string, React.CSSProperties>;
 
 // CSS keyframes for spinner animation (injected via style tag)
 const spinnerKeyframes = `
@@ -193,6 +206,12 @@ const App: React.FC = () => {
   // Model URL state
   const [modelUrl, setModelUrl] = useState<string>(DEFAULT_MODEL_URL);
   const [inputUrl, setInputUrl] = useState<string>(DEFAULT_MODEL_URL);
+
+  // Local file loading state
+  const [localFileManager] = useState(() => new LocalFileManager());
+  const [selectedModelFile, setSelectedModelFile] = useState<File | null>(null);
+  const [selectedTextureFiles, setSelectedTextureFiles] = useState<File[]>([]);
+  const [isLocalFile, setIsLocalFile] = useState<boolean>(false);
 
   // Pivot point state
   const [pivotPoint, setPivotPoint] = useState<{ x: number; y: number; z: number } | undefined>(undefined);
@@ -223,23 +242,76 @@ const App: React.FC = () => {
   const [loadResult, setLoadResult] = useState<ModelLoadResult | null>(null);
 
   // Handle model load
-  const handleLoad = useCallback(() => {
+  const handleLoad = useCallback(async () => {
     setError(null);
     setLoadResult(null);
-    setModelUrl(inputUrl);
-  }, [inputUrl]);
+    
+    try {
+      if (isLocalFile && selectedModelFile) {
+        // Load from local file
+        const result = await localFileManager.loadModelFromFiles(
+          selectedModelFile,
+          selectedTextureFiles
+        );
+        setModelUrl(result.modelUrl);
+      } else {
+        // Load from URL
+        setModelUrl(inputUrl);
+      }
+    } catch (err) {
+      setError(err as Error);
+    }
+  }, [isLocalFile, selectedModelFile, selectedTextureFiles, inputUrl, localFileManager]);
+
+  // Handle model file selection
+  const handleModelFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedModelFile(file);
+      setIsLocalFile(true);
+      
+      // Display file name in URL input box
+      setInputUrl(`[Local File] ${file.name}`);
+      
+      // Check if it's a GLTF file (will need texture files)
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext === 'gltf') {
+        // Clear texture files when selecting a new GLTF file
+        setSelectedTextureFiles([]);
+      }
+    }
+  }, []);
+
+  // Handle texture files selection
+  const handleTextureFilesSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setSelectedTextureFiles(files);
+  }, []);
 
   // Handle model load success
   const handleLoadSuccess = useCallback((result: ModelLoadResult) => {
     setLoadResult(result);
     setError(null);
-  }, []);
+    
+    // Cleanup Object URLs after successful load (they're no longer needed)
+    if (isLocalFile) {
+      // Use a small delay to ensure the model is fully loaded
+      setTimeout(() => {
+        localFileManager.cleanup();
+      }, 1000);
+    }
+  }, [isLocalFile, localFileManager]);
 
   // Handle model load error
   const handleLoadError = useCallback((err: Error) => {
     setError(err);
     setLoadResult(null);
-  }, []);
+    
+    // Cleanup Object URLs on error
+    if (isLocalFile) {
+      localFileManager.cleanup();
+    }
+  }, [isLocalFile, localFileManager]);
 
   // Handle loading state change
   const handleLoadingChange = useCallback((loading: boolean) => {
@@ -275,8 +347,6 @@ const App: React.FC = () => {
       visible: showGrid,
       showAxes: showAxes,
       plane: gridPlane,
-      size: 10,
-      divisions: 10,
     });
   }, [showGrid, showAxes, gridPlane]);
 
@@ -321,6 +391,13 @@ const App: React.FC = () => {
     }
   }, [cameraMovementSpeed]);
 
+  // Cleanup local file manager on component unmount
+  useEffect(() => {
+    return () => {
+      localFileManager.cleanup();
+    };
+  }, [localFileManager]);
+
   // Reset to defaults
   const handleReset = useCallback(() => {
     setInputUrl(DEFAULT_MODEL_URL);
@@ -336,7 +413,13 @@ const App: React.FC = () => {
     setZoomLimits(undefined);
     setError(null);
     setLoadResult(null);
-  }, []);
+    
+    // Clear local file state
+    setIsLocalFile(false);
+    setSelectedModelFile(null);
+    setSelectedTextureFiles([]);
+    localFileManager.cleanup();
+  }, [localFileManager]);
 
   return (
     <div style={styles.container}>
@@ -363,11 +446,76 @@ const App: React.FC = () => {
               <input
                 type="text"
                 value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
+                onChange={(e) => {
+                  setInputUrl(e.target.value);
+                  // Clear local file selection when user types URL
+                  if (!e.target.value.startsWith('[Local File]')) {
+                    setIsLocalFile(false);
+                    setSelectedModelFile(null);
+                    setSelectedTextureFiles([]);
+                  }
+                }}
                 placeholder="Enter model URL..."
                 style={styles.input}
               />
             </div>
+            <div style={{ marginBottom: '12px' }}>
+              <input
+                type="file"
+                id="modelFileInput"
+                accept=".gltf,.glb"
+                onChange={handleModelFileSelect}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => document.getElementById('modelFileInput')?.click()}
+                style={styles.buttonSecondary}
+                title="Select a local .gltf or .glb file"
+              >
+                📁 Choose Local File
+              </button>
+            </div>
+            
+            {/* Texture files selection (only show for GLTF files) */}
+            {isLocalFile && selectedModelFile && selectedModelFile.name.toLowerCase().endsWith('.gltf') && (
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  type="file"
+                  id="textureFilesInput"
+                  accept=".png,.jpg,.jpeg"
+                  multiple
+                  onChange={handleTextureFilesSelect}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => document.getElementById('textureFilesInput')?.click()}
+                  style={styles.buttonSecondary}
+                  title="Select texture image files (.png, .jpg, .jpeg)"
+                >
+                  🖼️ Choose Texture Files
+                </button>
+                {selectedTextureFiles.length > 0 && (
+                  <div style={{ 
+                    marginTop: '8px', 
+                    padding: '8px', 
+                    backgroundColor: '#1a1a2e', 
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#a0a0a0'
+                  }}>
+                    <div style={{ marginBottom: '4px', color: '#69f0ae' }}>
+                      {selectedTextureFiles.length} texture file(s) selected:
+                    </div>
+                    {selectedTextureFiles.map((file, index) => (
+                      <div key={index} style={{ paddingLeft: '8px' }}>
+                        • {file.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <button
               onClick={handleLoad}
               disabled={isLoading || !inputUrl}
@@ -547,9 +695,9 @@ const App: React.FC = () => {
               </label>
               <input
                 type="range"
-                min="0.5"
-                max="200"
-                step="0.5"
+                min="1"
+                max="300"
+                step="1"
                 value={cameraMovementSpeed}
                 onChange={(e) => setCameraMovementSpeed(parseFloat(e.target.value))}
                 disabled={!enableCameraMovement}
@@ -560,7 +708,7 @@ const App: React.FC = () => {
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#666' }}>
                 <span>0.5</span>
-                <span>200</span>
+                <span>300</span>
               </div>
             </div>
           </section>
@@ -631,8 +779,8 @@ const App: React.FC = () => {
             <ThreeViewer
               ref={viewerRef}
               modelUrl={modelUrl}
-              pivotPoint={pivotPoint}
-              zoomLimits={zoomLimits}
+              {...(pivotPoint && { pivotPoint })}
+              {...(zoomLimits && { zoomLimits })}
               grid={gridConfig}
               backgroundColor={0x545454}
               onLoad={handleLoadSuccess}
