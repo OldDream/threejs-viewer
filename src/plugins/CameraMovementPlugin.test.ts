@@ -697,4 +697,62 @@ describe('CameraMovementPlugin', () => {
       expect(vector.y).toBeCloseTo(0, 5);
     });
   });
+
+  describe('Fly Mode (CS Mode) Tests', () => {
+    beforeEach(() => {
+      plugin.initialize(mockContext);
+    });
+
+    it('should be disabled by default', () => {
+      expect(plugin.isFlyMode()).toBe(false);
+    });
+
+    it('should enable fly mode', () => {
+      plugin.setFlyMode(true);
+      expect(plugin.isFlyMode()).toBe(true);
+    });
+
+    it('should configure fly mode', () => {
+      plugin.configure({ flyMode: true });
+      expect(plugin.isFlyMode()).toBe(true);
+    });
+
+    describe('Movement Calculation in Fly Mode', () => {
+      beforeEach(() => {
+        plugin.setFlyMode(true);
+        // Tilt camera down 45 degrees
+        mockContext.camera.rotation.x = -Math.PI / 4;
+        mockContext.camera.updateMatrixWorld();
+      });
+
+      it('should move in view direction (with Y component) when moving forward', () => {
+        plugin.setMovementState({ forward: true });
+        const vector = plugin.calculateMovementVector(mockContext.camera);
+        
+        // Should have negative Y component (looking down)
+        expect(vector.y).toBeLessThan(-0.1);
+        // Should have Z component
+        expect(Math.abs(vector.z)).toBeGreaterThan(0.1);
+      });
+
+      it('should move along local X axis when moving right', () => {
+        plugin.setMovementState({ right: true });
+        const vector = plugin.calculateMovementVector(mockContext.camera);
+        
+        // Local X should be (1, 0, 0) if no roll
+        expect(vector.x).toBeCloseTo(1, 1);
+        expect(vector.y).toBeCloseTo(0, 1);
+        expect(vector.z).toBeCloseTo(0, 1);
+      });
+
+      it('should still move world up when using Shift', () => {
+        plugin.setMovementState({ up: true });
+        const vector = plugin.calculateMovementVector(mockContext.camera);
+        
+        expect(vector.y).toBeGreaterThan(0.9);
+        expect(vector.x).toBeCloseTo(0, 1);
+        expect(vector.z).toBeCloseTo(0, 1);
+      });
+    });
+  });
 });

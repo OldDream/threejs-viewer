@@ -69,6 +69,8 @@ export interface CameraMovementConfig {
   moveSpeed?: number;
   /** 是否启用移动控制，默认 true */
   enabled?: boolean;
+  /** 是否启用飞行模式（CS模式），默认 false */
+  flyMode?: boolean;
   /** OrbitControls 的 target 引用，用于 FPS 风格移动时同步移动观察目标 */
   orbitControlsTarget?: THREE.Vector3;
 }
@@ -107,6 +109,18 @@ export interface ICameraMovementPlugin extends Plugin {
    * @returns 是否启用
    */
   isEnabled(): boolean;
+
+  /**
+   * 设置是否启用飞行模式（CS模式）
+   * @param enabled 是否启用
+   */
+  setFlyMode(enabled: boolean): void;
+
+  /**
+   * 获取当前是否为飞行模式
+   * @returns 是否为飞行模式
+   */
+  isFlyMode(): boolean;
   
   /**
    * 设置移动速度
@@ -217,6 +231,11 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
    * - 3.2: WHEN moveSpeed 未配置 THEN Camera_Movement_Plugin SHALL 使用默认速度值 5.0
    */
   private _moveSpeed: number = DEFAULT_MOVE_SPEED;
+
+  /**
+   * 是否启用飞行模式（CS模式）
+   */
+  private _flyMode: boolean = false;
 
   /**
    * 移动状态，记录当前按下的移动键
@@ -397,6 +416,10 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
       this.setMoveSpeed(config.moveSpeed);
     }
 
+    if (config.flyMode !== undefined) {
+      this.setFlyMode(config.flyMode);
+    }
+
     if (config.orbitControlsTarget !== undefined) {
       this._orbitControlsTarget = config.orbitControlsTarget;
     }
@@ -410,6 +433,24 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
    */
   setOrbitControlsTarget(target: THREE.Vector3 | null): void {
     this._orbitControlsTarget = target;
+  }
+
+  /**
+   * 设置是否启用飞行模式（CS模式）
+   * 
+   * @param enabled - 是否启用
+   */
+  setFlyMode(enabled: boolean): void {
+    this._flyMode = enabled;
+  }
+
+  /**
+   * 获取当前是否为飞行模式
+   * 
+   * @returns 是否为飞行模式
+   */
+  isFlyMode(): boolean {
+    return this._flyMode;
   }
 
   /**
@@ -560,16 +601,18 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
     const forward = this._tempForward;
     camera.getWorldDirection(forward);
 
-    // 将前向量投影到水平面（Y=0）
-    forward.y = 0;
-    
-    // 如果前向量在水平面上的投影为零（相机正对上或下），
-    // 使用相机的上向量来确定前方向
-    if (forward.lengthSq() < 0.0001) {
-      // 当相机垂直向上或向下看时，使用相机的上向量的水平投影作为前向量
-      const cameraUp = this._tempCameraUp.set(0, 1, 0);
-      cameraUp.applyQuaternion(camera.quaternion);
-      forward.set(cameraUp.x, 0, cameraUp.z);
+    if (!this._flyMode) {
+      // 默认模式：将前向量投影到水平面（Y=0）
+      forward.y = 0;
+      
+      // 如果前向量在水平面上的投影为零（相机正对上或下），
+      // 使用相机的上向量来确定前方向
+      if (forward.lengthSq() < 0.0001) {
+        // 当相机垂直向上或向下看时，使用相机的上向量的水平投影作为前向量
+        const cameraUp = this._tempCameraUp.set(0, 1, 0);
+        cameraUp.applyQuaternion(camera.quaternion);
+        forward.set(cameraUp.x, 0, cameraUp.z);
+      }
     }
     
     // 归一化前向量
@@ -577,10 +620,18 @@ export class CameraMovementPlugin implements ICameraMovementPlugin {
       forward.normalize();
     }
 
-    // 计算右向量（前向量与世界上向量的叉积）
-    const worldUp = this._tempWorldUp; // 已经是 (0, 1, 0)
+    // 计算右向量
     const right = this._tempRight;
-    right.crossVectors(forward, worldUp);
+    
+    if (this._flyMode) {
+      // CS模式：右向量为相机本地X轴
+      // 使用本地X轴可以避免当相机垂直向下看时，前向量与世界上向量平行导致的叉积为零的问题
+      right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    } else {
+      // 默认模式：计算右向量（前向量与世界上向量的叉积）
+      const worldUp = this._tempWorldUp; // 已经是 (0, 1, 0)
+      right.crossVectors(forward, worldUp);
+    }
     
     // 归一化右向量
     if (right.lengthSq() > 0) {
