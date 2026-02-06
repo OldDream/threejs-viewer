@@ -108,6 +108,20 @@ describe('Backward Compatibility - ThreeViewer', () => {
       }).not.toThrow();
     });
 
+    it('should call onViewerReady callback after initialization', async () => {
+      const onViewerReady = vi.fn();
+      render(<ThreeViewer onViewerReady={onViewerReady} />);
+
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(onViewerReady).toHaveBeenCalledTimes(1);
+      const viewerCore = onViewerReady.mock.calls[0]?.[0];
+      expect(viewerCore).toBeTruthy();
+      expect(viewerCore.isInitialized).toBe(true);
+    });
+
     it('should accept all callback props together', () => {
       const onLoad = vi.fn();
       const onError = vi.fn();

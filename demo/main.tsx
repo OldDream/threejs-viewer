@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+// import App from './App';
+import App from './App.refactored';  // 使用重构版本
+
 
 /**
  * Demo Application Entry Point
