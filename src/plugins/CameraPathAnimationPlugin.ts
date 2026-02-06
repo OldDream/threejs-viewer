@@ -14,6 +14,8 @@ export interface CameraPathAnimationConfig {
   loop?: boolean;
   /** Whether to start playing immediately after configuration */
   autoPlay?: boolean;
+  /** Ease-in/out strength (0..1). 0 = linear, 1 = smoothstep */
+  easeInOut?: number;
   
   /** 
    * View Control Mode: Target
@@ -57,6 +59,7 @@ export class CameraPathAnimationPlugin implements Plugin {
   // Configuration
   private _duration: number = 10;
   private _loop: boolean = false;
+  private _easeInOut: number = 0;
   private _target: THREE.Vector3 | THREE.Object3D | null = null;
   private _fixedDirection: THREE.Vector3 | null = null;
   private _lookAlongPath: boolean = false;
@@ -90,6 +93,10 @@ export class CameraPathAnimationPlugin implements Plugin {
     
     if (config.loop !== undefined) {
       this._loop = config.loop;
+    }
+
+    if (config.easeInOut !== undefined && Number.isFinite(config.easeInOut)) {
+      this._easeInOut = Math.max(0, Math.min(1, config.easeInOut));
     }
     
     // Reset view modes
@@ -174,9 +181,11 @@ export class CameraPathAnimationPlugin implements Plugin {
     }
 
     const camera = this._context.camera;
-    
+
+    const eased = this._applyEaseInOut(this._progress);
+
     // Update Camera Position
-    this._curve.getPoint(this._progress, this._tempPos);
+    this._curve.getPointAt(eased, this._tempPos);
     camera.position.copy(this._tempPos);
     
     // Update Camera Rotation (View Mode)
@@ -198,8 +207,8 @@ export class CameraPathAnimationPlugin implements Plugin {
     } else if (this._lookAlongPath) {
       // Mode 3: Look Along Path
       // Get a point slightly ahead on the curve
-      const lookAheadProgress = Math.min(this._progress + 0.01, 1);
-      this._curve.getPoint(lookAheadProgress, this._tempLookAt);
+      const lookAheadProgress = Math.min(eased + 0.01, 1);
+      this._curve.getPointAt(lookAheadProgress, this._tempLookAt);
       camera.lookAt(this._tempLookAt);
     }
     // Default: Do not change rotation if no mode selected
@@ -211,6 +220,7 @@ export class CameraPathAnimationPlugin implements Plugin {
     this._curve = null;
     this._context = null;
     this._target = null;
+    this._easeInOut = 0;
     this._orbitControlsPlugin = null;
     this._isDisposed = true;
   }
@@ -220,5 +230,11 @@ export class CameraPathAnimationPlugin implements Plugin {
    */
   setOrbitControlsPlugin(plugin: IOrbitControlsPlugin): void {
     this._orbitControlsPlugin = plugin;
+  }
+
+  private _applyEaseInOut(t: number): number {
+    if (this._easeInOut <= 0) return t;
+    const s = t * t * (3 - 2 * t);
+    return t + (s - t) * this._easeInOut;
   }
 }

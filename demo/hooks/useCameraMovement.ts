@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, RefObject } from 'react';
-import { CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin } from '../../src';
+import { CameraMovementPlugin, ICameraMovementPlugin, ThreeViewerHandle, IOrbitControlsPlugin, ViewerCore } from '../../src';
 
 export function useCameraMovement(viewerRef: RefObject<ThreeViewerHandle | null>, isAnimating: boolean) {
   const pluginRef = useRef<ICameraMovementPlugin | null>(null);
@@ -7,15 +7,14 @@ export function useCameraMovement(viewerRef: RefObject<ThreeViewerHandle | null>
   const [speed, setSpeed] = useState<number>(5.0);
   const [isCSMode, setIsCSMode] = useState<boolean>(false);
 
-  // Register plugin
-  useEffect(() => {
-    const viewerCore = viewerRef.current?.getViewerCore();
-    if (!viewerCore || !viewerCore.isInitialized) {
-      return;
+  const onViewerReady = useCallback((viewerCore: ViewerCore) => {
+    const existing = viewerCore.plugins.get<ICameraMovementPlugin>('CameraMovementPlugin');
+    const plugin = existing ?? new CameraMovementPlugin();
+
+    if (!existing && !viewerCore.plugins.has(plugin.name)) {
+      viewerCore.plugins.register(plugin);
     }
 
-    const plugin = new CameraMovementPlugin();
-    viewerCore.plugins.register(plugin);
     pluginRef.current = plugin;
 
     const orbitPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
@@ -23,11 +22,19 @@ export function useCameraMovement(viewerRef: RefObject<ThreeViewerHandle | null>
       plugin.setOrbitControlsTarget(orbitPlugin.controls.target);
     }
 
+    plugin.setMoveSpeed(speed);
+    plugin.setFlyMode(isCSMode);
+    plugin.setEnabled(enabled && !isAnimating);
+  }, [enabled, isAnimating, isCSMode, speed]);
+
+  useEffect(() => {
     return () => {
-      if (pluginRef.current) {
-        viewerCore.plugins.unregister(pluginRef.current.name);
-        pluginRef.current = null;
+      const viewerCore = viewerRef.current?.getViewerCore();
+      const plugin = pluginRef.current;
+      if (viewerCore && plugin) {
+        viewerCore.plugins.unregister(plugin.name);
       }
+      pluginRef.current = null;
     };
   }, [viewerRef]);
 
@@ -65,6 +72,7 @@ export function useCameraMovement(viewerRef: RefObject<ThreeViewerHandle | null>
     setEnabled,
     setSpeed,
     setIsCSMode,
+    onViewerReady,
     handleReset,
   };
 }

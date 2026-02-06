@@ -1,14 +1,14 @@
-var he = Object.defineProperty;
-var ue = (o, e, t) => e in o ? he(o, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : o[e] = t;
-var n = (o, e, t) => ue(o, typeof e != "symbol" ? e + "" : e, t);
-import * as h from "three";
-import { GLTFLoader as _e, OrbitControls as pe } from "three-stdlib";
-import fe, { createContext as me, useState as ie, useRef as T, useCallback as se, useEffect as E, useMemo as ge, forwardRef as we, useImperativeHandle as xe, useContext as be } from "react";
-class Me {
+var pe = Object.defineProperty;
+var me = (h, e, t) => e in h ? pe(h, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : h[e] = t;
+var i = (h, e, t) => me(h, typeof e != "symbol" ? e + "" : e, t);
+import * as o from "three";
+import { GLTFLoader as fe, OrbitControls as ge } from "three-stdlib";
+import be, { createContext as we, useState as ie, useRef as D, useCallback as ne, useEffect as P, useMemo as Me, forwardRef as ve, useImperativeHandle as Pe, useContext as xe } from "react";
+class ye {
   constructor() {
-    n(this, "_scene");
-    n(this, "_isDisposed", !1);
-    this._scene = new h.Scene();
+    i(this, "_scene");
+    i(this, "_isDisposed", !1);
+    this._scene = new o.Scene();
   }
   /**
    * Gets the underlying Three.js Scene instance.
@@ -56,7 +56,7 @@ class Me {
    * After disposal, the SceneManager cannot be used.
    */
   dispose() {
-    this._isDisposed || (this.clear(), this._scene.background && (this._scene.background instanceof h.Texture && this._scene.background.dispose(), this._scene.background = null), this._scene.environment && (this._scene.environment.dispose(), this._scene.environment = null), this._isDisposed = !0);
+    this._isDisposed || (this.clear(), this._scene.background && (this._scene.background instanceof o.Texture && this._scene.background.dispose(), this._scene.background = null), this._scene.environment && (this._scene.environment.dispose(), this._scene.environment = null), this._isDisposed = !0);
   }
   /**
    * Recursively disposes of an object and all its children.
@@ -68,7 +68,7 @@ class Me {
       const t = e.children[0];
       t && (this._disposeObject(t), e.remove(t));
     }
-    e instanceof h.Mesh && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), (e instanceof h.Line || e instanceof h.Points) && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material));
+    e instanceof o.Mesh && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), (e instanceof o.Line || e instanceof o.Points) && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material));
   }
   /**
    * Disposes of a material or array of materials.
@@ -97,26 +97,26 @@ class Me {
       "gradientMap",
       "metalnessMap",
       "roughnessMap"
-    ].forEach((s) => {
-      const r = e[s];
-      r instanceof h.Texture && r.dispose();
+    ].forEach((n) => {
+      const r = e[n];
+      r instanceof o.Texture && r.dispose();
     }), e.dispose();
   }
 }
-const q = {
+const Z = {
   fov: 75,
   near: 0.01,
   // Smaller near plane to prevent clipping when rotating close to model
   far: 1e4,
   // Larger far plane for viewing large models from distance
-  position: new h.Vector3(0, 0, 5)
+  position: new o.Vector3(0, 0, 5)
 };
-class ve {
+class Ee {
   constructor(e) {
-    n(this, "_camera");
-    n(this, "_isDisposed", !1);
-    const t = (e == null ? void 0 : e.fov) ?? q.fov, s = (e == null ? void 0 : e.near) ?? q.near, r = (e == null ? void 0 : e.far) ?? q.far, c = (e == null ? void 0 : e.position) ?? q.position.clone();
-    this._camera = new h.PerspectiveCamera(t, 1, s, r), this._camera.position.copy(c);
+    i(this, "_camera");
+    i(this, "_isDisposed", !1);
+    const t = (e == null ? void 0 : e.fov) ?? Z.fov, n = (e == null ? void 0 : e.near) ?? Z.near, r = (e == null ? void 0 : e.far) ?? Z.far, a = (e == null ? void 0 : e.position) ?? Z.position.clone();
+    this._camera = new o.PerspectiveCamera(t, 1, n, r), this._camera.position.copy(a);
   }
   /**
    * Gets the underlying Three.js PerspectiveCamera instance.
@@ -172,16 +172,16 @@ class ve {
     this._isDisposed || (this._isDisposed = !0);
   }
 }
-const ne = {
+const oe = {
   antialias: !0,
   alpha: !1
 };
-class Ee {
+class De {
   constructor() {
-    n(this, "_renderer", null);
-    n(this, "_container", null);
-    n(this, "_isDisposed", !1);
-    n(this, "_isInitialized", !1);
+    i(this, "_renderer", null);
+    i(this, "_container", null);
+    i(this, "_isDisposed", !1);
+    i(this, "_isInitialized", !1);
   }
   /**
    * Gets the underlying Three.js WebGLRenderer instance.
@@ -208,13 +208,13 @@ class Ee {
       throw new Error("RenderManager has been disposed");
     if (this._isInitialized)
       throw new Error("RenderManager has already been initialized");
-    const s = (t == null ? void 0 : t.antialias) ?? ne.antialias, r = (t == null ? void 0 : t.alpha) ?? ne.alpha;
-    this._renderer = new h.WebGLRenderer({
-      antialias: s,
+    const n = (t == null ? void 0 : t.antialias) ?? oe.antialias, r = (t == null ? void 0 : t.alpha) ?? oe.alpha;
+    this._renderer = new o.WebGLRenderer({
+      antialias: n,
       alpha: r
     }), this._renderer.setPixelRatio(window.devicePixelRatio);
-    const c = e.clientWidth || 1, _ = e.clientHeight || 1;
-    this._renderer.setSize(c, _), e.appendChild(this._renderer.domElement), this._container = e, this._isInitialized = !0;
+    const a = e.clientWidth || 1, c = e.clientHeight || 1;
+    this._renderer.setSize(a, c), e.appendChild(this._renderer.domElement), this._container = e, this._isInitialized = !0;
   }
   /**
    * Sets the size of the renderer.
@@ -232,8 +232,8 @@ class Ee {
       throw new Error("RenderManager has been disposed");
     if (!this._renderer)
       throw new Error("RenderManager has not been initialized. Call initialize() first.");
-    const s = Math.max(1, Math.floor(e)), r = Math.max(1, Math.floor(t));
-    this._renderer.setSize(s, r);
+    const n = Math.max(1, Math.floor(e)), r = Math.max(1, Math.floor(t));
+    this._renderer.setSize(n, r);
   }
   /**
    * Renders the scene using the provided camera.
@@ -261,11 +261,11 @@ class Ee {
     this._isDisposed || (this._renderer && (this._container && this._renderer.domElement.parentElement === this._container && this._container.removeChild(this._renderer.domElement), this._renderer.dispose(), this._renderer = null), this._container = null, this._isInitialized = !1, this._isDisposed = !0);
   }
 }
-class De {
+class Ce {
   constructor() {
-    n(this, "_plugins", /* @__PURE__ */ new Map());
-    n(this, "_context", null);
-    n(this, "_isDisposed", !1);
+    i(this, "_plugins", /* @__PURE__ */ new Map());
+    i(this, "_context", null);
+    i(this, "_isDisposed", !1);
   }
   /**
    * Sets the plugin context that will be provided to all registered plugins.
@@ -374,8 +374,8 @@ class De {
       if (t.update)
         try {
           t.update(e);
-        } catch (s) {
-          console.error(`Error updating plugin "${t.name}":`, s);
+        } catch (n) {
+          console.error(`Error updating plugin "${t.name}":`, n);
         }
   }
   /**
@@ -397,23 +397,23 @@ class De {
     }
   }
 }
-class Re {
+class Se {
   constructor() {
-    n(this, "_sceneManager");
-    n(this, "_cameraManager");
-    n(this, "_renderManager");
-    n(this, "_pluginSystem");
-    n(this, "_container", null);
-    n(this, "_isInitialized", !1);
-    n(this, "_isRunning", !1);
-    n(this, "_isDisposed", !1);
-    n(this, "_animationFrameId", null);
-    n(this, "_lastTime", 0);
+    i(this, "_sceneManager");
+    i(this, "_cameraManager");
+    i(this, "_renderManager");
+    i(this, "_pluginSystem");
+    i(this, "_container", null);
+    i(this, "_isInitialized", !1);
+    i(this, "_isRunning", !1);
+    i(this, "_isDisposed", !1);
+    i(this, "_animationFrameId", null);
+    i(this, "_lastTime", 0);
     /**
      * The main render loop.
      * Calculates deltaTime, updates all plugins, and renders the scene.
      */
-    n(this, "_renderLoop", () => {
+    i(this, "_renderLoop", () => {
       if (!this._isRunning || this._isDisposed)
         return;
       const e = performance.now(), t = (e - this._lastTime) / 1e3;
@@ -422,7 +422,7 @@ class Re {
         this._cameraManager.camera
       ), this._animationFrameId = requestAnimationFrame(this._renderLoop);
     });
-    this._sceneManager = new Me(), this._cameraManager = new ve(), this._renderManager = new Ee(), this._pluginSystem = new De();
+    this._sceneManager = new ye(), this._cameraManager = new Ee(), this._renderManager = new De(), this._pluginSystem = new Ce();
   }
   /**
    * Gets the SceneManager instance.
@@ -489,12 +489,12 @@ class Re {
       throw new Error("ViewerCore has been disposed");
     if (this._isInitialized)
       throw new Error("ViewerCore has already been initialized");
-    const { container: t, antialias: s, alpha: r, cameraConfig: c } = e;
-    this._container = t, c && this._cameraManager.configure(c);
-    const _ = {};
-    s !== void 0 && (_.antialias = s), r !== void 0 && (_.alpha = r), this._renderManager.initialize(t, _);
-    const g = t.clientWidth || 1, y = t.clientHeight || 1;
-    this._cameraManager.setAspect(g / y), this._setupDefaultLighting();
+    const { container: t, antialias: n, alpha: r, cameraConfig: a } = e;
+    this._container = t, a && this._cameraManager.configure(a);
+    const c = {};
+    n !== void 0 && (c.antialias = n), r !== void 0 && (c.alpha = r), this._renderManager.initialize(t, c);
+    const f = t.clientWidth || 1, b = t.clientHeight || 1;
+    this._cameraManager.setAspect(f / b), this._setupDefaultLighting();
     const m = {
       scene: this._sceneManager.scene,
       camera: this._cameraManager.camera,
@@ -545,8 +545,8 @@ class Re {
       throw new Error("ViewerCore has been disposed");
     if (!this._isInitialized)
       throw new Error("ViewerCore has not been initialized. Call initialize() first.");
-    const s = Math.max(1, e), r = Math.max(1, t);
-    this._cameraManager.setAspect(s / r), this._renderManager.setSize(s, r);
+    const n = Math.max(1, e), r = Math.max(1, t);
+    this._cameraManager.setAspect(n / r), this._renderManager.setSize(n, r);
   }
   /**
    * Disposes of the ViewerCore and all its resources.
@@ -572,31 +572,32 @@ class Re {
    * Adds ambient light and directional lights to properly illuminate PBR materials.
    */
   _setupDefaultLighting() {
-    const e = this._sceneManager.scene, t = new h.AmbientLight(16777215, 0.5);
+    const e = this._sceneManager.scene, t = new o.AmbientLight(16777215, 0.5);
     e.add(t);
-    const s = new h.DirectionalLight(16777215, 1);
-    s.position.set(5, 10, 7.5), e.add(s);
-    const r = new h.DirectionalLight(16777215, 0.5);
+    const n = new o.DirectionalLight(16777215, 1);
+    n.position.set(5, 10, 7.5), e.add(n);
+    const r = new o.DirectionalLight(16777215, 0.5);
     r.position.set(-5, 5, -5), e.add(r);
-    const c = new h.HemisphereLight(16777215, 4473924, 0.5);
-    c.position.set(0, 20, 0), e.add(c);
+    const a = new o.HemisphereLight(16777215, 4473924, 0.5);
+    a.position.set(0, 20, 0), e.add(a);
   }
 }
 class Te {
   constructor() {
-    n(this, "name", "ModelLoaderPlugin");
-    n(this, "_context", null);
-    n(this, "_loader");
-    n(this, "_currentModel", null);
-    n(this, "_boundingBox", null);
-    n(this, "_center", null);
-    n(this, "_loadingState", {
+    i(this, "name", "ModelLoaderPlugin");
+    i(this, "_context", null);
+    i(this, "_loader");
+    i(this, "_currentModel", null);
+    i(this, "_boundingBox", null);
+    i(this, "_center", null);
+    i(this, "_loadingState", {
       isLoading: !1,
       progress: 0,
       error: null
     });
-    n(this, "_isDisposed", !1);
-    this._loader = new _e();
+    i(this, "_isDisposed", !1);
+    i(this, "_loadRequestId", 0);
+    this._loader = new fe();
   }
   /**
    * Gets the current loading state.
@@ -636,31 +637,38 @@ class Te {
       throw new Error("ModelLoaderPlugin has been disposed");
     if (!this._context)
       throw new Error("ModelLoaderPlugin has not been initialized. Call initialize() first.");
-    this._currentModel && this.unload(), this._loadingState = {
+    this._currentModel && this.unload();
+    const t = ++this._loadRequestId;
+    this._loadingState = {
       isLoading: !0,
       progress: 0,
       error: null
     };
     try {
-      const s = (await this._loadGLTF(e)).scene;
-      this._context.scene.add(s), this._currentModel = s;
-      const r = new h.Box3().setFromObject(s), c = new h.Vector3();
-      return r.getCenter(c), this._boundingBox = r, this._center = c, this._loadingState = {
+      const n = await this._loadGLTF(e);
+      if (t !== this._loadRequestId)
+        throw this._disposeObject(n.scene), new Error("Model loading cancelled due to new request");
+      const r = n.scene;
+      this._context.scene.add(r), this._currentModel = r;
+      const a = new o.Box3().setFromObject(r), c = new o.Vector3();
+      return a.getCenter(c), this._boundingBox = a, this._center = c, this._loadingState = {
         isLoading: !1,
         progress: 100,
         error: null
       }, {
-        model: s,
-        boundingBox: r,
+        model: r,
+        boundingBox: a,
         center: c
       };
-    } catch (t) {
-      const s = t instanceof Error ? t : new Error(`Failed to load model from URL: ${e}`);
+    } catch (n) {
+      if (t !== this._loadRequestId)
+        throw n;
+      const r = n instanceof Error ? n : new Error(`Failed to load model from URL: ${e}`);
       throw this._loadingState = {
         isLoading: !1,
         progress: 0,
-        error: s
-      }, s;
+        error: r
+      }, r;
     }
   }
   /**
@@ -708,7 +716,7 @@ class Te {
    * @returns A promise that resolves with the loaded GLTF object
    */
   _loadGLTF(e) {
-    return new Promise((t, s) => {
+    return new Promise((t, n) => {
       this._loader.load(
         e,
         // onLoad callback
@@ -718,17 +726,17 @@ class Te {
         // onProgress callback
         (r) => {
           if (r.lengthComputable) {
-            const c = r.loaded / r.total * 100;
+            const a = r.loaded / r.total * 100;
             this._loadingState = {
               ...this._loadingState,
-              progress: Math.round(c)
+              progress: Math.round(a)
             };
           }
         },
         // onError callback
         (r) => {
-          const c = r instanceof Error ? r.message : `Failed to load model from URL: ${e}`;
-          s(new Error(c));
+          const a = r instanceof Error ? r.message : `Failed to load model from URL: ${e}`;
+          n(new Error(a));
         }
       );
     });
@@ -744,7 +752,7 @@ class Te {
       const t = e.children[0];
       t && (this._disposeObject(t), e.remove(t));
     }
-    e instanceof h.Mesh && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), (e instanceof h.Line || e instanceof h.Points) && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), e instanceof h.SkinnedMesh && e.skeleton && e.skeleton.dispose();
+    e instanceof o.Mesh && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), (e instanceof o.Line || e instanceof o.Points) && (e.geometry && e.geometry.dispose(), e.material && this._disposeMaterial(e.material)), e instanceof o.SkinnedMesh && e.skeleton && e.skeleton.dispose();
   }
   /**
    * Disposes of a material or array of materials.
@@ -782,24 +790,24 @@ class Te {
       "thicknessMap",
       "sheenColorMap",
       "sheenRoughnessMap"
-    ].forEach((s) => {
-      const r = e[s];
-      r instanceof h.Texture && r.dispose();
+    ].forEach((n) => {
+      const r = e[n];
+      r instanceof o.Texture && r.dispose();
     }), e.dispose();
   }
 }
-class ye {
+class Ae {
   constructor() {
-    n(this, "name", "OrbitControlsPlugin");
-    n(this, "_context", null);
-    n(this, "_controls", null);
-    n(this, "_isDisposed", !1);
+    i(this, "name", "OrbitControlsPlugin");
+    i(this, "_context", null);
+    i(this, "_controls", null);
+    i(this, "_isDisposed", !1);
     // Store initial state for reset functionality
-    n(this, "_initialTarget", new h.Vector3(0, 0, 0));
-    n(this, "_initialCameraPosition", new h.Vector3(0, 0, 5));
-    n(this, "_initialMinDistance", 0.1);
+    i(this, "_initialTarget", new o.Vector3(0, 0, 0));
+    i(this, "_initialCameraPosition", new o.Vector3(0, 0, 5));
+    i(this, "_initialMinDistance", 0.1);
     // Allow closer zoom with smaller near plane
-    n(this, "_initialMaxDistance", 1e4);
+    i(this, "_initialMaxDistance", 1e4);
   }
   /**
    * Gets the OrbitControls instance.
@@ -825,7 +833,7 @@ class ye {
   initialize(e) {
     if (this._isDisposed)
       throw new Error("OrbitControlsPlugin has been disposed");
-    this._context = e, this._controls = new pe(e.camera, e.container), this._initialCameraPosition.copy(e.camera.position), this._controls.minDistance = this._initialMinDistance, this._controls.maxDistance = this._initialMaxDistance, this._controls.enableDamping = !0, this._controls.dampingFactor = 0.05, this._controls.enablePan = !0, this._controls.enableRotate = !0, this._controls.enableZoom = !0;
+    this._context = e, this._controls = new ge(e.camera, e.container), this._initialCameraPosition.copy(e.camera.position), this._controls.minDistance = this._initialMinDistance, this._controls.maxDistance = this._initialMaxDistance, this._controls.enableDamping = !0, this._controls.dampingFactor = 0.05, this._controls.enablePan = !0, this._controls.enableRotate = !0, this._controls.enableZoom = !0;
   }
   /**
    * Configures the OrbitControls with the provided options.
@@ -919,12 +927,12 @@ class ye {
 }
 class ze {
   constructor() {
-    n(this, "name", "GridHelperPlugin");
-    n(this, "_context", null);
-    n(this, "_gridHelper", null);
-    n(this, "_axesHelper", null);
-    n(this, "_isDisposed", !1);
-    n(this, "_config", {
+    i(this, "name", "GridHelperPlugin");
+    i(this, "_context", null);
+    i(this, "_gridHelper", null);
+    i(this, "_axesHelper", null);
+    i(this, "_isDisposed", !1);
+    i(this, "_config", {
       size: 10,
       divisions: 10,
       colorCenterLine: 4473924,
@@ -940,7 +948,7 @@ class ze {
     this._context = e, this._createGrid(), this._createAxes();
   }
   _createGrid() {
-    this._context && (this._gridHelper && (this._context.scene.remove(this._gridHelper), this._gridHelper.dispose()), this._gridHelper = new h.GridHelper(
+    this._context && (this._gridHelper && (this._context.scene.remove(this._gridHelper), this._disposeHelper(this._gridHelper)), this._gridHelper = new o.GridHelper(
       this._config.size,
       this._config.divisions,
       this._config.colorCenterLine,
@@ -948,7 +956,15 @@ class ze {
     ), this._applyPlaneRotation(), this._context.scene.add(this._gridHelper));
   }
   _createAxes() {
-    this._context && (this._axesHelper && (this._context.scene.remove(this._axesHelper), this._axesHelper.dispose()), this._config.showAxes && (this._axesHelper = new h.AxesHelper(this._config.axesSize), this._context.scene.add(this._axesHelper)));
+    this._context && (this._axesHelper && (this._context.scene.remove(this._axesHelper), this._disposeHelper(this._axesHelper)), this._config.showAxes && (this._axesHelper = new o.AxesHelper(this._config.axesSize), this._context.scene.add(this._axesHelper)));
+  }
+  _disposeHelper(e) {
+    if (!e) return;
+    const t = e;
+    if (t.geometry && t.geometry.dispose(), t.material) {
+      const n = t.material;
+      Array.isArray(n) ? n.forEach((r) => r.dispose()) : n.dispose();
+    }
   }
   _applyPlaneRotation() {
     if (this._gridHelper)
@@ -967,7 +983,7 @@ class ze {
     e.size !== void 0 && (this._config.size = e.size), e.divisions !== void 0 && (this._config.divisions = e.divisions), e.colorCenterLine !== void 0 && (this._config.colorCenterLine = e.colorCenterLine), e.colorGrid !== void 0 && (this._config.colorGrid = e.colorGrid), e.plane !== void 0 && (this._config.plane = e.plane), e.showAxes !== void 0 && (this._config.showAxes = e.showAxes), e.axesSize !== void 0 && (this._config.axesSize = e.axesSize), this._createGrid(), this._createAxes();
   }
   setVisible(e) {
-    this._gridHelper && (this._gridHelper.visible = e), this._axesHelper && (this._axesHelper.visible = e);
+    this._gridHelper && (this._gridHelper.visible = e);
   }
   setPlane(e) {
     this._config.plane = e, this._applyPlaneRotation();
@@ -975,13 +991,702 @@ class ze {
   setAxesVisible(e) {
     this._config.showAxes = e, this._createAxes();
   }
-  update(e) {
-  }
   dispose() {
-    this._isDisposed || (this._gridHelper && this._context && (this._context.scene.remove(this._gridHelper), this._gridHelper.dispose(), this._gridHelper = null), this._axesHelper && this._context && (this._context.scene.remove(this._axesHelper), this._axesHelper.dispose(), this._axesHelper = null), this._context = null, this._isDisposed = !0);
+    this._isDisposed || (this._gridHelper && this._context && (this._context.scene.remove(this._gridHelper), this._disposeHelper(this._gridHelper), this._gridHelper = null), this._axesHelper && this._context && (this._context.scene.remove(this._axesHelper), this._disposeHelper(this._axesHelper), this._axesHelper = null), this._context = null, this._isDisposed = !0);
   }
 }
-var J = { exports: {} }, Y = {};
+const ae = {
+  KeyW: "forward",
+  KeyS: "backward",
+  KeyA: "left",
+  KeyD: "right",
+  ShiftLeft: "up",
+  ShiftRight: "up",
+  ControlLeft: "down",
+  ControlRight: "down"
+  /* DOWN */
+};
+function X() {
+  return {
+    forward: !1,
+    backward: !1,
+    left: !1,
+    right: !1,
+    up: !1,
+    down: !1
+  };
+}
+const Re = 5, Ie = !0;
+class Ye {
+  constructor() {
+    /**
+     * 插件名称
+     * 
+     * Requirements:
+     * - 4.1: THE Camera_Movement_Plugin SHALL 实现 Plugin 接口
+     */
+    i(this, "name", "CameraMovementPlugin");
+    /**
+     * 插件上下文，包含 Three.js 核心对象
+     */
+    i(this, "_context", null);
+    /**
+     * 是否启用移动控制
+     * 
+     * Requirements:
+     * - 2.1: THE Camera_Movement_Plugin SHALL 提供 enabled 属性用于控制移动功能的启用状态
+     * - 2.4: THE Camera_Movement_Plugin SHALL 默认启用移动功能
+     */
+    i(this, "_enabled", Ie);
+    /**
+     * 基础移动速度
+     * 
+     * Requirements:
+     * - 3.1: THE Camera_Movement_Plugin SHALL 提供 moveSpeed 配置项用于设置基础移动速度
+     * - 3.2: WHEN moveSpeed 未配置 THEN Camera_Movement_Plugin SHALL 使用默认速度值 5.0
+     */
+    i(this, "_moveSpeed", Re);
+    /**
+     * 是否启用飞行模式（CS模式）
+     */
+    i(this, "_flyMode", !1);
+    /**
+     * 移动状态，记录当前按下的移动键
+     */
+    i(this, "_movementState", X());
+    /**
+     * 插件是否已被销毁
+     */
+    i(this, "_isDisposed", !1);
+    /**
+     * 绑定的 keydown 事件处理器
+     * 保存引用以便在 dispose 时移除
+     */
+    i(this, "_boundHandleKeyDown", null);
+    /**
+     * 绑定的 keyup 事件处理器
+     * 保存引用以便在 dispose 时移除
+     */
+    i(this, "_boundHandleKeyUp", null);
+    /**
+     * OrbitControls 的 target 引用
+     * 用于 FPS 风格移动时同步移动观察目标
+     */
+    i(this, "_orbitControlsTarget", null);
+    /**
+     * 临时向量，用于计算移动方向，避免在 update 循环中创建新对象
+     */
+    i(this, "_tempMovement", new o.Vector3());
+    i(this, "_tempForward", new o.Vector3());
+    i(this, "_tempRight", new o.Vector3());
+    i(this, "_tempWorldUp", new o.Vector3(0, 1, 0));
+    i(this, "_tempCameraUp", new o.Vector3(0, 1, 0));
+  }
+  /**
+   * 初始化插件
+   * 在插件被注册到 PluginSystem 时调用
+   * 
+   * @param context - 插件上下文，包含 Three.js 核心对象
+   * @throws Error 如果插件已被销毁
+   * 
+   * Requirements:
+   * - 4.1: THE Camera_Movement_Plugin SHALL 实现 Plugin 接口
+   * - 4.2: WHEN Camera_Movement_Plugin 被注册到 PluginSystem THEN Camera_Movement_Plugin SHALL 在 initialize 方法中设置键盘事件监听
+   */
+  initialize(e) {
+    if (this._isDisposed)
+      throw new Error("CameraMovementPlugin has been disposed");
+    this._context = e, this._movementState = X(), this._boundHandleKeyDown = this.handleKeyDown.bind(this), this._boundHandleKeyUp = this.handleKeyUp.bind(this), window.addEventListener("keydown", this._boundHandleKeyDown), window.addEventListener("keyup", this._boundHandleKeyUp);
+  }
+  /**
+   * 更新插件状态
+   * 在每帧渲染循环中调用，用于更新相机位置
+   * 
+   * @param deltaTime - 自上一帧以来经过的时间（秒）
+   * 
+   * Requirements:
+   * - 4.4: WHEN 渲染循环执行 THEN Camera_Movement_Plugin SHALL 在 update 方法中更新相机位置
+   * - 3.3: THE Camera_Movement_Plugin SHALL 基于 deltaTime 计算实际移动距离以确保帧率无关的平滑移动
+   * - 1.8: WHEN 用户释放所有移动键 THEN Camera_Movement_Plugin SHALL 停止相机移动
+   */
+  update(e) {
+    if (this._isDisposed || !this._context || !this._enabled || !this.isMoving())
+      return;
+    const t = this._context.camera;
+    if (!t)
+      return;
+    const n = this.calculateMovementVector(t);
+    if (n.lengthSq() === 0)
+      return;
+    const r = this._moveSpeed * e, a = n.multiplyScalar(r);
+    t.position.add(a), this._orbitControlsTarget && this._orbitControlsTarget.add(a);
+  }
+  /**
+   * 销毁插件并释放所有资源
+   * 在插件被注销或查看器被销毁时调用
+   * 
+   * Requirements:
+   * - 4.3: WHEN Camera_Movement_Plugin 被注销 THEN Camera_Movement_Plugin SHALL 在 dispose 方法中移除所有事件监听器
+   */
+  dispose() {
+    this._isDisposed || (this._boundHandleKeyDown && (window.removeEventListener("keydown", this._boundHandleKeyDown), this._boundHandleKeyDown = null), this._boundHandleKeyUp && (window.removeEventListener("keyup", this._boundHandleKeyUp), this._boundHandleKeyUp = null), this._movementState = X(), this._context = null, this._isDisposed = !0);
+  }
+  /**
+   * 配置插件
+   * 
+   * @param config - 配置选项
+   * @throws Error 如果插件已被销毁
+   */
+  configure(e) {
+    if (this._isDisposed)
+      throw new Error("CameraMovementPlugin has been disposed");
+    e.enabled !== void 0 && (this._enabled = e.enabled), e.moveSpeed !== void 0 && this.setMoveSpeed(e.moveSpeed), e.flyMode !== void 0 && this.setFlyMode(e.flyMode), e.orbitControlsTarget !== void 0 && (this._orbitControlsTarget = e.orbitControlsTarget);
+  }
+  /**
+   * 设置 OrbitControls 的 target 引用
+   * 用于 FPS 风格移动时同步移动观察目标
+   * 
+   * @param target - OrbitControls 的 target Vector3，传入 null 可清除引用
+   */
+  setOrbitControlsTarget(e) {
+    this._orbitControlsTarget = e;
+  }
+  /**
+   * 设置是否启用飞行模式（CS模式）
+   * 
+   * @param enabled - 是否启用
+   */
+  setFlyMode(e) {
+    this._flyMode = e;
+  }
+  /**
+   * 获取当前是否为飞行模式
+   * 
+   * @returns 是否为飞行模式
+   */
+  isFlyMode() {
+    return this._flyMode;
+  }
+  /**
+   * 设置是否启用移动控制
+   * 
+   * @param enabled - 是否启用
+   * @throws Error 如果插件已被销毁
+   * 
+   * Requirements:
+   * - 5.2: THE Camera_Movement_Plugin SHALL 提供 setEnabled(enabled: boolean) 方法用于启用或禁用移动功能
+   * - 2.2: WHEN enabled 设置为 false THEN Camera_Movement_Plugin SHALL 忽略所有键盘移动输入
+   * - 2.3: WHEN enabled 设置为 true THEN Camera_Movement_Plugin SHALL 响应键盘移动输入
+   */
+  setEnabled(e) {
+    if (this._isDisposed)
+      throw new Error("CameraMovementPlugin has been disposed");
+    this._enabled = e, e || (this._movementState = X());
+  }
+  /**
+   * 获取当前启用状态
+   * 
+   * @returns 是否启用
+   */
+  isEnabled() {
+    return this._enabled;
+  }
+  /**
+   * 设置移动速度
+   * 
+   * @param speed - 移动速度
+   * @throws Error 如果插件已被销毁
+   * 
+   * Requirements:
+   * - 5.3: THE Camera_Movement_Plugin SHALL 提供 setMoveSpeed(speed: number) 方法用于动态调整移动速度
+   */
+  setMoveSpeed(e) {
+    if (this._isDisposed)
+      throw new Error("CameraMovementPlugin has been disposed");
+    this._moveSpeed = Math.abs(e);
+  }
+  /**
+   * 获取当前移动速度
+   * 
+   * @returns 移动速度
+   */
+  getMoveSpeed() {
+    return this._moveSpeed;
+  }
+  /**
+   * 检查当前是否正在移动
+   * 
+   * @returns 是否正在移动（至少有一个方向键被按下）
+   * 
+   * Requirements:
+   * - 5.4: THE Camera_Movement_Plugin SHALL 提供 isMoving() 方法返回当前是否正在移动
+   */
+  isMoving() {
+    return this._movementState.forward || this._movementState.backward || this._movementState.left || this._movementState.right || this._movementState.up || this._movementState.down;
+  }
+  /**
+   * 获取当前移动状态（用于测试）
+   * 
+   * @returns 当前移动状态
+   */
+  getMovementState() {
+    return { ...this._movementState };
+  }
+  /**
+   * 设置移动状态（用于测试）
+   * 
+   * @param state - 移动状态
+   */
+  setMovementState(e) {
+    this._movementState = {
+      ...this._movementState,
+      ...e
+    };
+  }
+  /**
+   * 获取插件上下文（用于测试）
+   * 
+   * @returns 插件上下文
+   */
+  getContext() {
+    return this._context;
+  }
+  /**
+   * 检查插件是否已被销毁（用于测试）
+   * 
+   * @returns 是否已被销毁
+   */
+  isDisposed() {
+    return this._isDisposed;
+  }
+  /**
+   * 计算移动向量
+   * 基于相机朝向计算水平面内的前向量和右向量，
+   * 根据 movementState 组合最终移动向量
+   * 
+   * @param camera - Three.js 相机对象
+   * @returns 归一化的移动向量（如果没有移动则返回零向量）
+   * 
+   * Requirements:
+   * - 1.1: WHEN 用户按下 W 键 THEN Camera_Movement_Plugin SHALL 使相机沿当前朝向的前方在水平面内移动
+   * - 1.2: WHEN 用户按下 S 键 THEN Camera_Movement_Plugin SHALL 使相机沿当前朝向的后方在水平面内移动
+   * - 1.3: WHEN 用户按下 A 键 THEN Camera_Movement_Plugin SHALL 使相机向左侧在水平面内移动
+   * - 1.4: WHEN 用户按下 D 键 THEN Camera_Movement_Plugin SHALL 使相机向右侧在水平面内移动
+   * - 1.5: WHEN 用户按下 Shift 键 THEN Camera_Movement_Plugin SHALL 使相机沿世界坐标系Y轴正方向（向上）移动
+   * - 1.6: WHEN 用户按下 Ctrl 键 THEN Camera_Movement_Plugin SHALL 使相机沿世界坐标系Y轴负方向（向下）移动
+   * - 1.7: WHEN 用户同时按下多个移动键 THEN Camera_Movement_Plugin SHALL 将各方向的移动向量叠加计算最终移动方向
+   */
+  calculateMovementVector(e) {
+    if (this._tempMovement.set(0, 0, 0), !this.isMoving())
+      return this._tempMovement;
+    const t = this._tempForward;
+    if (e.getWorldDirection(t), !this._flyMode && (t.y = 0, t.lengthSq() < 1e-4)) {
+      const r = this._tempCameraUp.set(0, 1, 0);
+      r.applyQuaternion(e.quaternion), t.set(r.x, 0, r.z);
+    }
+    t.lengthSq() > 0 && t.normalize();
+    const n = this._tempRight;
+    if (this._flyMode)
+      n.set(1, 0, 0).applyQuaternion(e.quaternion);
+    else {
+      const r = this._tempWorldUp;
+      n.crossVectors(t, r);
+    }
+    return n.lengthSq() > 0 && n.normalize(), this._movementState.forward && this._tempMovement.add(t), this._movementState.backward && this._tempMovement.sub(t), this._movementState.right && this._tempMovement.add(n), this._movementState.left && this._tempMovement.sub(n), this._movementState.up && (this._tempMovement.y += 1), this._movementState.down && (this._tempMovement.y -= 1), this._tempMovement.lengthSq() > 0 && this._tempMovement.normalize(), this._tempMovement;
+  }
+  /**
+   * 处理键盘按下事件
+   * 根据按下的键更新移动状态
+   * 
+   * @param event - 键盘事件
+   * 
+   * Requirements:
+   * - 4.2: WHEN Camera_Movement_Plugin 被注册到 PluginSystem THEN Camera_Movement_Plugin SHALL 在 initialize 方法中设置键盘事件监听
+   * - 1.1-1.6: 各方向键控制相机移动
+   */
+  handleKeyDown(e) {
+    if (!this._enabled || this._isDisposed)
+      return;
+    const t = ae[e.code];
+    t !== void 0 && this.updateMovementStateByDirection(t, !0);
+  }
+  /**
+   * 处理键盘释放事件
+   * 根据释放的键更新移动状态
+   * 
+   * @param event - 键盘事件
+   * 
+   * Requirements:
+   * - 4.2: WHEN Camera_Movement_Plugin 被注册到 PluginSystem THEN Camera_Movement_Plugin SHALL 在 initialize 方法中设置键盘事件监听
+   * - 1.8: WHEN 用户释放所有移动键 THEN Camera_Movement_Plugin SHALL 停止相机移动
+   */
+  handleKeyUp(e) {
+    if (this._isDisposed)
+      return;
+    const t = ae[e.code];
+    t !== void 0 && this.updateMovementStateByDirection(t, !1);
+  }
+  /**
+   * 根据移动方向更新移动状态
+   * 
+   * @param direction - 移动方向
+   * @param isPressed - 是否按下
+   */
+  updateMovementStateByDirection(e, t) {
+    switch (e) {
+      case "forward":
+        this._movementState.forward = t;
+        break;
+      case "backward":
+        this._movementState.backward = t;
+        break;
+      case "left":
+        this._movementState.left = t;
+        break;
+      case "right":
+        this._movementState.right = t;
+        break;
+      case "up":
+        this._movementState.up = t;
+        break;
+      case "down":
+        this._movementState.down = t;
+        break;
+    }
+  }
+}
+class qe {
+  constructor() {
+    i(this, "name", "CameraPathAnimationPlugin");
+    i(this, "_context", null);
+    i(this, "_curve", null);
+    i(this, "_progress", 0);
+    i(this, "_isPlaying", !1);
+    i(this, "_isDisposed", !1);
+    // Configuration
+    i(this, "_duration", 10);
+    i(this, "_loop", !1);
+    i(this, "_easeInOut", 0);
+    i(this, "_target", null);
+    i(this, "_fixedDirection", null);
+    i(this, "_lookAlongPath", !1);
+    // Internal state
+    i(this, "_orbitControlsPlugin", null);
+    i(this, "_wasOrbitControlsEnabled", !0);
+    i(this, "_tempPos", new o.Vector3());
+    i(this, "_tempLookAt", new o.Vector3());
+  }
+  initialize(e) {
+    if (this._isDisposed)
+      throw new Error("CameraPathAnimationPlugin has been disposed");
+    this._context = e;
+  }
+  /**
+   * Configure the animation settings
+   */
+  configure(e) {
+    this._isDisposed || (e.pathPoints && e.pathPoints.length >= 2 && (this._curve = new o.CatmullRomCurve3(e.pathPoints)), e.duration !== void 0 && e.duration > 0 && (this._duration = e.duration), e.loop !== void 0 && (this._loop = e.loop), e.easeInOut !== void 0 && Number.isFinite(e.easeInOut) && (this._easeInOut = Math.max(0, Math.min(1, e.easeInOut))), e.target !== void 0 ? (this._target = e.target, this._fixedDirection = null, this._lookAlongPath = !1) : e.fixedDirection !== void 0 ? (this._fixedDirection = e.fixedDirection.clone().normalize(), this._target = null, this._lookAlongPath = !1) : e.lookAlongPath !== void 0 && (this._lookAlongPath = e.lookAlongPath, this._lookAlongPath && (this._target = null, this._fixedDirection = null)), e.autoPlay && this.play());
+  }
+  /**
+   * Start or resume the animation
+   */
+  play() {
+    this._isDisposed || !this._curve || !this._context || this._isPlaying || (this._isPlaying = !0, this._orbitControlsPlugin && (this._wasOrbitControlsEnabled = this._orbitControlsPlugin.controls.enabled, this._orbitControlsPlugin.controls.enabled = !1));
+  }
+  /**
+   * Pause the animation
+   */
+  pause() {
+    this._isPlaying && (this._isPlaying = !1, this._orbitControlsPlugin && (this._orbitControlsPlugin.controls.enabled = this._wasOrbitControlsEnabled));
+  }
+  /**
+   * Stop and reset the animation
+   */
+  stop() {
+    this.pause(), this._progress = 0;
+  }
+  /**
+   * Update loop called by PluginSystem
+   */
+  update(e) {
+    if (!this._isPlaying || !this._curve || !this._context) return;
+    this._progress += e / this._duration, this._progress >= 1 && (this._loop ? this._progress %= 1 : (this._progress = 1, this.pause()));
+    const t = this._context.camera, n = this._applyEaseInOut(this._progress);
+    if (this._curve.getPointAt(n, this._tempPos), t.position.copy(this._tempPos), this._target)
+      this._target instanceof o.Object3D ? (this._target.getWorldPosition(this._tempLookAt), t.lookAt(this._tempLookAt)) : t.lookAt(this._target);
+    else if (this._fixedDirection)
+      this._tempLookAt.copy(t.position).add(this._fixedDirection), t.lookAt(this._tempLookAt);
+    else if (this._lookAlongPath) {
+      const r = Math.min(n + 0.01, 1);
+      this._curve.getPointAt(r, this._tempLookAt), t.lookAt(this._tempLookAt);
+    }
+  }
+  dispose() {
+    this._isDisposed || (this.stop(), this._curve = null, this._context = null, this._target = null, this._easeInOut = 0, this._orbitControlsPlugin = null, this._isDisposed = !0);
+  }
+  /**
+   * Manually link OrbitControlsPlugin if you want auto-disable functionality
+   */
+  setOrbitControlsPlugin(e) {
+    this._orbitControlsPlugin = e;
+  }
+  _applyEaseInOut(e) {
+    if (this._easeInOut <= 0) return e;
+    const t = e * e * (3 - 2 * e);
+    return e + (t - e) * this._easeInOut;
+  }
+}
+class We {
+  constructor() {
+    i(this, "name", "CameraPathDesignerPlugin");
+    i(this, "_context", null);
+    i(this, "_isDisposed", !1);
+    i(this, "_enabled", !1);
+    i(this, "_orbitControlsPlugin", null);
+    i(this, "_wasOrbitControlsEnabled", !0);
+    i(this, "_duration", 10);
+    i(this, "_loop", !1);
+    i(this, "_easeInOut", 0);
+    i(this, "_pathPoints", []);
+    i(this, "_target", null);
+    i(this, "_selectedIndex", null);
+    i(this, "_draggingIndex", null);
+    i(this, "_pickTargetArmed", !1);
+    i(this, "_raycaster", new o.Raycaster());
+    i(this, "_pointerNdc", new o.Vector2());
+    i(this, "_dragPlane", new o.Plane());
+    i(this, "_tempNormal", new o.Vector3());
+    i(this, "_tempPoint", new o.Vector3());
+    i(this, "_helpersGroup", null);
+    i(this, "_pointMeshes", []);
+    i(this, "_pointGeometry", null);
+    i(this, "_pointMaterial", null);
+    i(this, "_selectedPointMaterial", null);
+    i(this, "_targetMesh", null);
+    i(this, "_targetGeometry", null);
+    i(this, "_targetMaterial", null);
+    i(this, "_line", null);
+    i(this, "_lineGeometry", null);
+    i(this, "_lineMaterial", null);
+    i(this, "_samples", 200);
+    i(this, "_pointSize", 0.12);
+    i(this, "_lineColor", 4500223);
+    i(this, "_pointColor", 16777215);
+    i(this, "_selectedPointColor", 16763972);
+    i(this, "_targetColor", 16729190);
+    i(this, "_onPointerDown", (e) => {
+      var M;
+      if (!this._context || !this._enabled || this._isDisposed) return;
+      const t = this._context.renderer.domElement, n = t.getBoundingClientRect(), r = (e.clientX - n.left) / n.width * 2 - 1, a = -((e.clientY - n.top) / n.height * 2 - 1);
+      if (this._pointerNdc.set(r, a), this._raycaster.setFromCamera(this._pointerNdc, this._context.camera), this._pickTargetArmed) {
+        const I = this._raycaster.intersectObjects(this._context.scene.children, !0).find((z) => !this._isHelperObject(z.object));
+        I && this.setTargetPoint(I.point), this._pickTargetArmed = !1;
+        return;
+      }
+      const f = this._raycaster.intersectObjects(this._pointMeshes, !1)[0];
+      if (!f) {
+        this.setSelectedIndex(null);
+        return;
+      }
+      const b = (M = f.object.userData) == null ? void 0 : M.pathPointIndex;
+      if (typeof b != "number") return;
+      const m = this._pathPoints[b];
+      m && (this.setSelectedIndex(b), this._draggingIndex = b, this._context.camera.getWorldDirection(this._tempNormal).normalize(), this._dragPlane.setFromNormalAndCoplanarPoint(this._tempNormal, m), this._orbitControlsPlugin && (this._wasOrbitControlsEnabled = this._orbitControlsPlugin.controls.enabled, this._orbitControlsPlugin.controls.enabled = !1), t.setPointerCapture(e.pointerId));
+    });
+    i(this, "_onPointerMove", (e) => {
+      if (!this._context || !this._enabled || this._isDisposed || this._draggingIndex === null) return;
+      const n = this._context.renderer.domElement.getBoundingClientRect(), r = (e.clientX - n.left) / n.width * 2 - 1, a = -((e.clientY - n.top) / n.height * 2 - 1);
+      if (this._pointerNdc.set(r, a), this._raycaster.setFromCamera(this._pointerNdc, this._context.camera), !this._raycaster.ray.intersectPlane(this._dragPlane, this._tempPoint)) return;
+      const b = this._pathPoints[this._draggingIndex];
+      b && (b.copy(this._tempPoint), this._syncHelpers());
+    });
+    i(this, "_onPointerUp", (e) => {
+      if (!(!this._context || this._isDisposed)) {
+        this._draggingIndex !== null && this._orbitControlsPlugin && (this._orbitControlsPlugin.controls.enabled = this._wasOrbitControlsEnabled), this._draggingIndex = null;
+        try {
+          this._context.renderer.domElement.releasePointerCapture(e.pointerId);
+        } catch {
+        }
+      }
+    });
+  }
+  initialize(e) {
+    if (this._isDisposed)
+      throw new Error("CameraPathDesignerPlugin has been disposed");
+    this._context = e, this._ensureHelpers();
+  }
+  configure(e) {
+    this._isDisposed || (e.pointSize !== void 0 && e.pointSize > 0 && (this._pointSize = e.pointSize), e.lineColor !== void 0 && (this._lineColor = e.lineColor), e.pointColor !== void 0 && (this._pointColor = e.pointColor), e.selectedPointColor !== void 0 && (this._selectedPointColor = e.selectedPointColor), e.targetColor !== void 0 && (this._targetColor = e.targetColor), e.samples !== void 0 && e.samples >= 10 && (this._samples = e.samples), this._rebuildMaterials(), this._syncHelpers(), e.enabled !== void 0 && (e.enabled ? this.enable() : this.disable()));
+  }
+  enable() {
+    if (!this._context || this._isDisposed || this._enabled) return;
+    this._enabled = !0, this._ensureHelpers(), this._helpersGroup && (this._helpersGroup.visible = !0);
+    const e = this._context.renderer.domElement;
+    e.addEventListener("pointerdown", this._onPointerDown), e.addEventListener("pointermove", this._onPointerMove), e.addEventListener("pointerup", this._onPointerUp);
+  }
+  disable() {
+    if (!this._context || this._isDisposed || !this._enabled) return;
+    this._enabled = !1, this._pickTargetArmed = !1, this._draggingIndex = null;
+    const e = this._context.renderer.domElement;
+    e.removeEventListener("pointerdown", this._onPointerDown), e.removeEventListener("pointermove", this._onPointerMove), e.removeEventListener("pointerup", this._onPointerUp), this._helpersGroup && (this._helpersGroup.visible = !1), this._orbitControlsPlugin && (this._orbitControlsPlugin.controls.enabled = this._wasOrbitControlsEnabled);
+  }
+  isEnabled() {
+    return this._enabled;
+  }
+  setOrbitControlsPlugin(e) {
+    this._orbitControlsPlugin = e;
+  }
+  setDuration(e) {
+    Number.isFinite(e) && e > 0 && (this._duration = e);
+  }
+  getDuration() {
+    return this._duration;
+  }
+  setLoop(e) {
+    this._loop = e;
+  }
+  getLoop() {
+    return this._loop;
+  }
+  setEaseInOut(e) {
+    Number.isFinite(e) && (this._easeInOut = Math.max(0, Math.min(1, e)));
+  }
+  getEaseInOut() {
+    return this._easeInOut;
+  }
+  getPathPoints() {
+    return this._pathPoints.map((e) => e.clone());
+  }
+  setPathPoints(e) {
+    this._pathPoints = e.map((t) => t.clone()), this.setSelectedIndex(null), this._ensureHelpers(), this._syncHelpers();
+  }
+  addPoint(e) {
+    this._pathPoints.push(e.clone()), this._ensureHelpers(), this._syncHelpers(), this.setSelectedIndex(this._pathPoints.length - 1);
+  }
+  addPointFromCamera() {
+    this._context && this.addPoint(this._context.camera.position);
+  }
+  insertPointAfter(e) {
+    if (!this._context || e < 0 || e >= this._pathPoints.length) return;
+    const t = this._pathPoints[e];
+    if (!t) return;
+    const n = new o.Vector3(1, 0, 0).applyQuaternion(this._context.camera.quaternion).normalize(), r = t.clone().addScaledVector(n, this._pointSize * 6);
+    this._pathPoints.splice(e + 1, 0, r), this._ensureHelpers(), this._syncHelpers(), this.setSelectedIndex(e + 1);
+  }
+  removePoint(e) {
+    e < 0 || e >= this._pathPoints.length || (this._pathPoints.splice(e, 1), this._selectedIndex !== null && (this._pathPoints.length === 0 ? this._selectedIndex = null : this._selectedIndex = Math.min(this._selectedIndex, this._pathPoints.length - 1)), this._ensureHelpers(), this._syncHelpers());
+  }
+  removeSelectedPoint() {
+    this._selectedIndex !== null && this.removePoint(this._selectedIndex);
+  }
+  clear() {
+    this._pathPoints = [], this._selectedIndex = null, this._ensureHelpers(), this._syncHelpers();
+  }
+  setSelectedIndex(e) {
+    if (e === null) {
+      this._selectedIndex = null, this._syncPointMaterials();
+      return;
+    }
+    e < 0 || e >= this._pathPoints.length || (this._selectedIndex = e, this._syncPointMaterials());
+  }
+  getSelectedIndex() {
+    return this._selectedIndex;
+  }
+  armPickTargetOnce() {
+    this._enabled || this.enable(), this._pickTargetArmed = !0;
+  }
+  isPickTargetArmed() {
+    return this._pickTargetArmed;
+  }
+  setTargetPoint(e) {
+    this._target = { type: "point", point: e.clone() }, this._syncHelpers();
+  }
+  setTargetObject(e) {
+    this._target = { type: "object", object: e }, this._syncHelpers();
+  }
+  clearTarget() {
+    this._target = null, this._syncHelpers();
+  }
+  getTargetPoint() {
+    return this._target ? this._target.type === "point" ? this._target.point.clone() : (this._target.object.getWorldPosition(this._tempPoint), this._tempPoint.clone()) : null;
+  }
+  exportShot() {
+    return {
+      duration: this._duration,
+      loop: this._loop,
+      easeInOut: this._easeInOut,
+      pathPoints: this._pathPoints.map((e) => ({ x: e.x, y: e.y, z: e.z })),
+      target: this.getTargetPoint() ? (() => {
+        const e = this.getTargetPoint();
+        return { x: e.x, y: e.y, z: e.z };
+      })() : null
+    };
+  }
+  importShot(e) {
+    this.setDuration(e.duration), this.setLoop(e.loop), this.setEaseInOut(e.easeInOut), this.setPathPoints(e.pathPoints.map((t) => new o.Vector3(t.x, t.y, t.z))), e.target ? this.setTargetPoint(new o.Vector3(e.target.x, e.target.y, e.target.z)) : this.clearTarget();
+  }
+  dispose() {
+    var e, t, n, r, a, c, f;
+    this._isDisposed || (this.disable(), this._isDisposed = !0, this._helpersGroup && this._context && this._context.scene.remove(this._helpersGroup), this._pointMeshes = [], (e = this._pointGeometry) == null || e.dispose(), (t = this._pointMaterial) == null || t.dispose(), (n = this._selectedPointMaterial) == null || n.dispose(), (r = this._targetGeometry) == null || r.dispose(), (a = this._targetMaterial) == null || a.dispose(), (c = this._lineGeometry) == null || c.dispose(), (f = this._lineMaterial) == null || f.dispose(), this._helpersGroup = null, this._pointGeometry = null, this._pointMaterial = null, this._selectedPointMaterial = null, this._targetMesh = null, this._targetGeometry = null, this._targetMaterial = null, this._line = null, this._lineGeometry = null, this._lineMaterial = null, this._context = null, this._orbitControlsPlugin = null, this._target = null);
+  }
+  _ensureHelpers() {
+    if (this._context) {
+      for (this._helpersGroup || (this._helpersGroup = new o.Group(), this._helpersGroup.name = "CameraPathDesignerHelpers", this._helpersGroup.visible = this._enabled, this._context.scene.add(this._helpersGroup)), this._pointGeometry || (this._pointGeometry = new o.SphereGeometry(this._pointSize, 16, 12)), this._lineMaterial || (this._lineMaterial = new o.LineBasicMaterial({ color: this._lineColor })), this._targetGeometry || (this._targetGeometry = new o.SphereGeometry(this._pointSize * 1.2, 16, 12)), this._targetMaterial || (this._targetMaterial = new o.MeshBasicMaterial({ color: this._targetColor })), (!this._pointMaterial || !this._selectedPointMaterial) && this._rebuildMaterials(), this._lineGeometry || (this._lineGeometry = new o.BufferGeometry()), this._line || (this._line = new o.Line(this._lineGeometry, this._lineMaterial), this._line.renderOrder = 9999, this._helpersGroup.add(this._line)), this._targetMesh || (this._targetMesh = new o.Mesh(this._targetGeometry, this._targetMaterial), this._targetMesh.visible = !1, this._targetMesh.renderOrder = 1e4, this._helpersGroup.add(this._targetMesh)); this._pointMeshes.length < this._pathPoints.length; ) {
+        const e = new o.Mesh(this._pointGeometry, this._pointMaterial);
+        e.userData = { pathPointIndex: this._pointMeshes.length }, e.renderOrder = 1e4, this._pointMeshes.push(e), this._helpersGroup.add(e);
+      }
+      for (; this._pointMeshes.length > this._pathPoints.length; ) {
+        const e = this._pointMeshes.pop();
+        this._helpersGroup.remove(e);
+      }
+      for (let e = 0; e < this._pointMeshes.length; e++) {
+        const t = this._pointMeshes[e];
+        t && (t.userData.pathPointIndex = e);
+      }
+    }
+  }
+  _rebuildMaterials() {
+    var e, t, n, r;
+    (e = this._pointMaterial) == null || e.dispose(), (t = this._selectedPointMaterial) == null || t.dispose(), (n = this._lineMaterial) == null || n.dispose(), (r = this._targetMaterial) == null || r.dispose(), this._pointMaterial = new o.MeshBasicMaterial({ color: this._pointColor }), this._selectedPointMaterial = new o.MeshBasicMaterial({ color: this._selectedPointColor }), this._lineMaterial = new o.LineBasicMaterial({ color: this._lineColor }), this._targetMaterial = new o.MeshBasicMaterial({ color: this._targetColor }), this._line && (this._line.material = this._lineMaterial), this._targetMesh && (this._targetMesh.material = this._targetMaterial), this._syncPointMaterials();
+  }
+  _syncPointMaterials() {
+    if (!(!this._pointMaterial || !this._selectedPointMaterial))
+      for (let e = 0; e < this._pointMeshes.length; e++) {
+        const t = this._pointMeshes[e];
+        t && (t.material = e === this._selectedIndex ? this._selectedPointMaterial : this._pointMaterial);
+      }
+  }
+  _syncHelpers() {
+    if (!(!this._context || !this._helpersGroup)) {
+      for (let e = 0; e < this._pathPoints.length; e++) {
+        const t = this._pointMeshes[e], n = this._pathPoints[e];
+        !t || !n || (t.position.copy(n), t.visible = this._enabled);
+      }
+      if (this._targetMesh) {
+        const e = this.getTargetPoint();
+        e ? (this._targetMesh.visible = this._enabled, this._targetMesh.position.copy(e)) : this._targetMesh.visible = !1;
+      }
+      this._syncLine(), this._syncPointMaterials();
+    }
+  }
+  _syncLine() {
+    if (!this._lineGeometry) return;
+    if (this._pathPoints.length < 2) {
+      this._lineGeometry.setAttribute("position", new o.Float32BufferAttribute([], 3)), this._lineGeometry.computeBoundingSphere();
+      return;
+    }
+    const t = new o.CatmullRomCurve3(this._pathPoints).getPoints(this._samples), n = new Float32Array(t.length * 3);
+    for (let r = 0; r < t.length; r++) {
+      const a = t[r];
+      a && (n[r * 3 + 0] = a.x, n[r * 3 + 1] = a.y, n[r * 3 + 2] = a.z);
+    }
+    this._lineGeometry.setAttribute("position", new o.BufferAttribute(n, 3)), this._lineGeometry.computeBoundingSphere();
+  }
+  _isHelperObject(e) {
+    return this._helpersGroup ? e === this._helpersGroup ? !0 : this._helpersGroup.children.includes(e) || this._helpersGroup.getObjectById(e.id) !== void 0 : !1;
+  }
+}
+var J = { exports: {} }, j = {};
 /**
  * @license React
  * react-jsx-runtime.production.js
@@ -991,29 +1696,29 @@ var J = { exports: {} }, Y = {};
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var ae;
-function Pe() {
-  if (ae) return Y;
-  ae = 1;
-  var o = Symbol.for("react.transitional.element"), e = Symbol.for("react.fragment");
-  function t(s, r, c) {
-    var _ = null;
-    if (c !== void 0 && (_ = "" + c), r.key !== void 0 && (_ = "" + r.key), "key" in r) {
-      c = {};
-      for (var g in r)
-        g !== "key" && (c[g] = r[g]);
-    } else c = r;
-    return r = c.ref, {
-      $$typeof: o,
-      type: s,
-      key: _,
+var le;
+function Oe() {
+  if (le) return j;
+  le = 1;
+  var h = Symbol.for("react.transitional.element"), e = Symbol.for("react.fragment");
+  function t(n, r, a) {
+    var c = null;
+    if (a !== void 0 && (c = "" + a), r.key !== void 0 && (c = "" + r.key), "key" in r) {
+      a = {};
+      for (var f in r)
+        f !== "key" && (a[f] = r[f]);
+    } else a = r;
+    return r = a.ref, {
+      $$typeof: h,
+      type: n,
+      key: c,
       ref: r !== void 0 ? r : null,
-      props: c
+      props: a
     };
   }
-  return Y.Fragment = e, Y.jsx = t, Y.jsxs = t, Y;
+  return j.Fragment = e, j.jsx = t, j.jsxs = t, j;
 }
-var $ = {};
+var Y = {};
 /**
  * @license React
  * react-jsx-runtime.development.js
@@ -1023,167 +1728,167 @@ var $ = {};
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var oe;
-function Se() {
-  return oe || (oe = 1, process.env.NODE_ENV !== "production" && (function() {
-    function o(i) {
-      if (i == null) return null;
-      if (typeof i == "function")
-        return i.$$typeof === v ? null : i.displayName || i.name || null;
-      if (typeof i == "string") return i;
-      switch (i) {
-        case P:
+var he;
+function ke() {
+  return he || (he = 1, process.env.NODE_ENV !== "production" && (function() {
+    function h(s) {
+      if (s == null) return null;
+      if (typeof s == "function")
+        return s.$$typeof === Q ? null : s.displayName || s.name || null;
+      if (typeof s == "string") return s;
+      switch (s) {
+        case O:
           return "Fragment";
-        case B:
+        case L:
           return "Profiler";
-        case A:
+        case k:
           return "StrictMode";
-        case H:
+        case K:
           return "Suspense";
-        case M:
+        case V:
           return "SuspenseList";
-        case d:
+        case N:
           return "Activity";
       }
-      if (typeof i == "object")
-        switch (typeof i.tag == "number" && console.error(
+      if (typeof s == "object")
+        switch (typeof s.tag == "number" && console.error(
           "Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."
-        ), i.$$typeof) {
+        ), s.$$typeof) {
           case C:
             return "Portal";
-          case U:
-            return i.displayName || "Context";
-          case X:
-            return (i._context.displayName || "Context") + ".Consumer";
-          case I:
-            var a = i.render;
-            return i = i.displayName, i || (i = a.displayName || a.name || "", i = i !== "" ? "ForwardRef(" + i + ")" : "ForwardRef"), i;
-          case Q:
-            return a = i.displayName || null, a !== null ? a : o(i.type) || "Memo";
-          case l:
-            a = i._payload, i = i._init;
+          case W:
+            return s.displayName || "Context";
+          case H:
+            return (s._context.displayName || "Context") + ".Consumer";
+          case $:
+            var l = s.render;
+            return s = s.displayName, s || (s = l.displayName || l.name || "", s = s !== "" ? "ForwardRef(" + s + ")" : "ForwardRef"), s;
+          case F:
+            return l = s.displayName || null, l !== null ? l : h(s.type) || "Memo";
+          case v:
+            l = s._payload, s = s._init;
             try {
-              return o(i(a));
+              return h(s(l));
             } catch {
             }
         }
       return null;
     }
-    function e(i) {
-      return "" + i;
+    function e(s) {
+      return "" + s;
     }
-    function t(i) {
+    function t(s) {
       try {
-        e(i);
-        var a = !1;
+        e(s);
+        var l = !1;
       } catch {
-        a = !0;
+        l = !0;
       }
-      if (a) {
-        a = console;
-        var u = a.error, p = typeof Symbol == "function" && Symbol.toStringTag && i[Symbol.toStringTag] || i.constructor.name || "Object";
+      if (l) {
+        l = console;
+        var u = l.error, p = typeof Symbol == "function" && Symbol.toStringTag && s[Symbol.toStringTag] || s.constructor.name || "Object";
         return u.call(
-          a,
+          l,
           "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.",
           p
-        ), e(i);
+        ), e(s);
       }
     }
-    function s(i) {
-      if (i === P) return "<>";
-      if (typeof i == "object" && i !== null && i.$$typeof === l)
+    function n(s) {
+      if (s === O) return "<>";
+      if (typeof s == "object" && s !== null && s.$$typeof === v)
         return "<...>";
       try {
-        var a = o(i);
-        return a ? "<" + a + ">" : "<...>";
+        var l = h(s);
+        return l ? "<" + l + ">" : "<...>";
       } catch {
         return "<...>";
       }
     }
     function r() {
-      var i = D.A;
-      return i === null ? null : i.getOwner();
+      var s = d.A;
+      return s === null ? null : s.getOwner();
     }
-    function c() {
+    function a() {
       return Error("react-stack-top-frame");
     }
-    function _(i) {
-      if (w.call(i, "key")) {
-        var a = Object.getOwnPropertyDescriptor(i, "key").get;
-        if (a && a.isReactWarning) return !1;
+    function c(s) {
+      if (_.call(s, "key")) {
+        var l = Object.getOwnPropertyDescriptor(s, "key").get;
+        if (l && l.isReactWarning) return !1;
       }
-      return i.key !== void 0;
+      return s.key !== void 0;
     }
-    function g(i, a) {
+    function f(s, l) {
       function u() {
-        R || (R = !0, console.error(
+        S || (S = !0, console.error(
           "%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)",
-          a
+          l
         ));
       }
-      u.isReactWarning = !0, Object.defineProperty(i, "key", {
+      u.isReactWarning = !0, Object.defineProperty(s, "key", {
         get: u,
         configurable: !0
       });
     }
-    function y() {
-      var i = o(this.type);
-      return F[i] || (F[i] = !0, console.error(
+    function b() {
+      var s = h(this.type);
+      return w[s] || (w[s] = !0, console.error(
         "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."
-      )), i = this.props.ref, i !== void 0 ? i : null;
+      )), s = this.props.ref, s !== void 0 ? s : null;
     }
-    function m(i, a, u, p, Z, K) {
-      var f = u.ref;
-      return i = {
-        $$typeof: k,
-        type: i,
-        key: a,
+    function m(s, l, u, p, B, ee) {
+      var g = u.ref;
+      return s = {
+        $$typeof: G,
+        type: s,
+        key: l,
         props: u,
         _owner: p
-      }, (f !== void 0 ? f : null) !== null ? Object.defineProperty(i, "ref", {
+      }, (g !== void 0 ? g : null) !== null ? Object.defineProperty(s, "ref", {
         enumerable: !1,
-        get: y
-      }) : Object.defineProperty(i, "ref", { enumerable: !1, value: null }), i._store = {}, Object.defineProperty(i._store, "validated", {
+        get: b
+      }) : Object.defineProperty(s, "ref", { enumerable: !1, value: null }), s._store = {}, Object.defineProperty(s._store, "validated", {
         configurable: !1,
         enumerable: !1,
         writable: !0,
         value: 0
-      }), Object.defineProperty(i, "_debugInfo", {
+      }), Object.defineProperty(s, "_debugInfo", {
         configurable: !1,
         enumerable: !1,
         writable: !0,
         value: null
-      }), Object.defineProperty(i, "_debugStack", {
+      }), Object.defineProperty(s, "_debugStack", {
         configurable: !1,
         enumerable: !1,
         writable: !0,
-        value: Z
-      }), Object.defineProperty(i, "_debugTask", {
+        value: B
+      }), Object.defineProperty(s, "_debugTask", {
         configurable: !1,
         enumerable: !1,
         writable: !0,
-        value: K
-      }), Object.freeze && (Object.freeze(i.props), Object.freeze(i)), i;
+        value: ee
+      }), Object.freeze && (Object.freeze(s.props), Object.freeze(s)), s;
     }
-    function z(i, a, u, p, Z, K) {
-      var f = a.children;
-      if (f !== void 0)
+    function M(s, l, u, p, B, ee) {
+      var g = l.children;
+      if (g !== void 0)
         if (p)
-          if (S(f)) {
-            for (p = 0; p < f.length; p++)
-              W(f[p]);
-            Object.freeze && Object.freeze(f);
+          if (x(g)) {
+            for (p = 0; p < g.length; p++)
+              R(g[p]);
+            Object.freeze && Object.freeze(g);
           } else
             console.error(
               "React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead."
             );
-        else W(f);
-      if (w.call(a, "key")) {
-        f = o(i);
-        var V = Object.keys(a).filter(function(de) {
-          return de !== "key";
+        else R(g);
+      if (_.call(l, "key")) {
+        g = h(s);
+        var U = Object.keys(l).filter(function(ue) {
+          return ue !== "key";
         });
-        p = 0 < V.length ? "{key: someKey, " + V.join(": ..., ") + ": ...}" : "{key: someKey}", L[f + p] || (V = 0 < V.length ? "{" + V.join(": ..., ") + ": ...}" : "{}", console.error(
+        p = 0 < U.length ? "{key: someKey, " + U.join(": ..., ") + ": ...}" : "{key: someKey}", A[g + p] || (U = 0 < U.length ? "{" + U.join(": ..., ") + ": ...}" : "{}", console.error(
           `A props object containing a "key" prop is being spread into JSX:
   let props = %s;
   <%s {...props} />
@@ -1191,322 +1896,347 @@ React keys must be passed directly to JSX without using spread:
   let props = %s;
   <%s key={someKey} {...props} />`,
           p,
-          f,
-          V,
-          f
-        ), L[f + p] = !0);
+          g,
+          U,
+          g
+        ), A[g + p] = !0);
       }
-      if (f = null, u !== void 0 && (t(u), f = "" + u), _(a) && (t(a.key), f = "" + a.key), "key" in a) {
+      if (g = null, u !== void 0 && (t(u), g = "" + u), c(l) && (t(l.key), g = "" + l.key), "key" in l) {
         u = {};
-        for (var ee in a)
-          ee !== "key" && (u[ee] = a[ee]);
-      } else u = a;
-      return f && g(
+        for (var te in l)
+          te !== "key" && (u[te] = l[te]);
+      } else u = l;
+      return g && f(
         u,
-        typeof i == "function" ? i.displayName || i.name || "Unknown" : i
+        typeof s == "function" ? s.displayName || s.name || "Unknown" : s
       ), m(
-        i,
-        f,
+        s,
+        g,
         u,
         r(),
-        Z,
-        K
+        B,
+        ee
       );
     }
-    function W(i) {
-      O(i) ? i._store && (i._store.validated = 1) : typeof i == "object" && i !== null && i.$$typeof === l && (i._payload.status === "fulfilled" ? O(i._payload.value) && i._payload.value._store && (i._payload.value._store.validated = 1) : i._store && (i._store.validated = 1));
+    function R(s) {
+      I(s) ? s._store && (s._store.validated = 1) : typeof s == "object" && s !== null && s.$$typeof === v && (s._payload.status === "fulfilled" ? I(s._payload.value) && s._payload.value._store && (s._payload.value._store.validated = 1) : s._store && (s._store.validated = 1));
     }
-    function O(i) {
-      return typeof i == "object" && i !== null && i.$$typeof === k;
+    function I(s) {
+      return typeof s == "object" && s !== null && s.$$typeof === G;
     }
-    var b = fe, k = Symbol.for("react.transitional.element"), C = Symbol.for("react.portal"), P = Symbol.for("react.fragment"), A = Symbol.for("react.strict_mode"), B = Symbol.for("react.profiler"), X = Symbol.for("react.consumer"), U = Symbol.for("react.context"), I = Symbol.for("react.forward_ref"), H = Symbol.for("react.suspense"), M = Symbol.for("react.suspense_list"), Q = Symbol.for("react.memo"), l = Symbol.for("react.lazy"), d = Symbol.for("react.activity"), v = Symbol.for("react.client.reference"), D = b.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, w = Object.prototype.hasOwnProperty, S = Array.isArray, x = console.createTask ? console.createTask : function() {
+    var z = be, G = Symbol.for("react.transitional.element"), C = Symbol.for("react.portal"), O = Symbol.for("react.fragment"), k = Symbol.for("react.strict_mode"), L = Symbol.for("react.profiler"), H = Symbol.for("react.consumer"), W = Symbol.for("react.context"), $ = Symbol.for("react.forward_ref"), K = Symbol.for("react.suspense"), V = Symbol.for("react.suspense_list"), F = Symbol.for("react.memo"), v = Symbol.for("react.lazy"), N = Symbol.for("react.activity"), Q = Symbol.for("react.client.reference"), d = z.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, _ = Object.prototype.hasOwnProperty, x = Array.isArray, y = console.createTask ? console.createTask : function() {
       return null;
     };
-    b = {
-      react_stack_bottom_frame: function(i) {
-        return i();
+    z = {
+      react_stack_bottom_frame: function(s) {
+        return s();
       }
     };
-    var R, F = {}, N = b.react_stack_bottom_frame.bind(
-      b,
-      c
-    )(), G = x(s(c)), L = {};
-    $.Fragment = P, $.jsx = function(i, a, u) {
-      var p = 1e4 > D.recentlyCreatedOwnerStacks++;
-      return z(
-        i,
-        a,
+    var S, w = {}, E = z.react_stack_bottom_frame.bind(
+      z,
+      a
+    )(), T = y(n(a)), A = {};
+    Y.Fragment = O, Y.jsx = function(s, l, u) {
+      var p = 1e4 > d.recentlyCreatedOwnerStacks++;
+      return M(
+        s,
+        l,
         u,
         !1,
-        p ? Error("react-stack-top-frame") : N,
-        p ? x(s(i)) : G
+        p ? Error("react-stack-top-frame") : E,
+        p ? y(n(s)) : T
       );
-    }, $.jsxs = function(i, a, u) {
-      var p = 1e4 > D.recentlyCreatedOwnerStacks++;
-      return z(
-        i,
-        a,
+    }, Y.jsxs = function(s, l, u) {
+      var p = 1e4 > d.recentlyCreatedOwnerStacks++;
+      return M(
+        s,
+        l,
         u,
         !0,
-        p ? Error("react-stack-top-frame") : N,
-        p ? x(s(i)) : G
+        p ? Error("react-stack-top-frame") : E,
+        p ? y(n(s)) : T
       );
     };
-  })()), $;
+  })()), Y;
 }
-var le;
-function Ce() {
-  return le || (le = 1, process.env.NODE_ENV === "production" ? J.exports = Pe() : J.exports = Se()), J.exports;
+var de;
+function He() {
+  return de || (de = 1, process.env.NODE_ENV === "production" ? J.exports = Oe() : J.exports = ke()), J.exports;
 }
-var te = Ce();
-const re = me(
+var se = He();
+const re = we(
   void 0
 );
 re.displayName = "ThreeInstanceContext";
-const j = {
+const q = {
   scene: null,
   camera: null,
   renderer: null,
   container: null,
   isReady: !1,
   isDisposed: !1
-}, Ae = {
+}, Ge = {
   unmounted: ["mounted"],
   mounted: ["initialized", "disposed"],
   initialized: ["disposed"],
   disposed: []
   // Terminal state
-}, Oe = {
+}, Le = {
   unmounted: !1,
   mounted: !1,
   initialized: !0,
   disposed: !1
 };
-function ke(o, e) {
-  return Ae[o].includes(e);
+function Ve(h, e) {
+  return Ge[h].includes(e);
 }
-function Ie(o, e) {
-  const t = Oe[e];
+function Fe(h, e) {
+  const t = Le[e];
   return e === "disposed" ? {
-    ...j,
+    ...q,
     isDisposed: !0
-  } : !t || !o || !o.isInitialized ? j : {
-    scene: o.scene.scene,
-    camera: o.camera.camera,
-    renderer: o.renderer.renderer,
-    container: o.container,
+  } : !t || !h || !h.isInitialized ? q : {
+    scene: h.scene.scene,
+    camera: h.camera.camera,
+    renderer: h.renderer.renderer,
+    container: h.container,
     isReady: !0,
     isDisposed: !1
   };
 }
 function ce({
-  children: o,
+  children: h,
   viewerCore: e
 }) {
-  const [t, s] = ie("unmounted"), r = T(!1), c = T(null), _ = se((m) => {
-    s((z) => ke(z, m) ? m : z);
+  const [t, n] = ie("unmounted"), r = D(!1), a = D(null), c = ne((m) => {
+    n((M) => Ve(M, m) ? m : M);
   }, []);
-  E(() => (r.current = !0, _("mounted"), () => {
-    r.current = !1, s((m) => m !== "disposed" ? "disposed" : m);
-  }), [_]), E(() => {
-    const m = c.current;
-    if (c.current = e, m && !e) {
-      _("disposed");
+  P(() => (r.current = !0, c("mounted"), () => {
+    r.current = !1, n((m) => m !== "disposed" ? "disposed" : m);
+  }), [c]), P(() => {
+    const m = a.current;
+    if (a.current = e, m && !e) {
+      c("disposed");
       return;
     }
-    e && e.isInitialized && _("initialized");
-  }, [e, _]);
-  const g = se(() => {
-    e && e.isInitialized && t === "mounted" && _("initialized");
-  }, [e, t, _]);
-  E(() => {
+    e && e.isInitialized && c("initialized");
+  }, [e, c]);
+  const f = ne(() => {
+    e && e.isInitialized && t === "mounted" && c("initialized");
+  }, [e, t, c]);
+  P(() => {
     if (!e || t !== "mounted")
       return;
-    g();
-    const m = setInterval(g, 50), z = setTimeout(() => {
+    f();
+    const m = setInterval(f, 50), M = setTimeout(() => {
       clearInterval(m);
     }, 5e3);
     return () => {
-      clearInterval(m), clearTimeout(z);
+      clearInterval(m), clearTimeout(M);
     };
-  }, [e, t, g]);
-  const y = ge(() => Ie(e, t), [e, t]);
-  return /* @__PURE__ */ te.jsx(re.Provider, { value: y, children: o });
+  }, [e, t, f]);
+  const b = Me(() => Fe(e, t), [e, t]);
+  return /* @__PURE__ */ se.jsx(re.Provider, { value: b, children: h });
 }
 ce.displayName = "ThreeInstanceProvider";
-const He = we(
+const _e = 5526612, Ne = ve(
   function({
     modelUrl: e,
     pivotPoint: t,
-    zoomLimits: s,
+    zoomLimits: n,
     grid: r,
+    backgroundColor: a = _e,
     className: c,
-    style: _,
-    onLoad: g,
-    onError: y,
-    onLoadingChange: m,
-    children: z
-  }, W) {
-    const O = T(null), b = T(null), k = T(null), C = T(null), P = T(null), [A, B] = ie(!1), [X, U] = ie(null), I = T(g), H = T(y), M = T(m);
-    E(() => {
-      I.current = g;
-    }, [g]), E(() => {
-      H.current = y;
-    }, [y]), E(() => {
-      M.current = m;
-    }, [m]), xe(
-      W,
+    style: f,
+    onLoad: b,
+    onError: m,
+    onLoadingChange: M,
+    onViewerReady: R,
+    children: I
+  }, z) {
+    const G = D(null), C = D(null), O = D(null), k = D(null), L = D(null), [H, W] = ie(!1), [$, K] = ie(null), V = D(b), F = D(m), v = D(M), N = D(R);
+    P(() => {
+      V.current = b;
+    }, [b]), P(() => {
+      F.current = m;
+    }, [m]), P(() => {
+      v.current = M;
+    }, [M]), P(() => {
+      N.current = R;
+    }, [R]), Pe(
+      z,
       () => ({
         getInstances() {
-          if (A)
+          if (H)
             return {
-              ...j,
+              ...q,
               isDisposed: !0
             };
-          const l = b.current;
-          return !l || !l.isInitialized ? j : {
-            scene: l.scene.scene,
-            camera: l.camera.camera,
-            renderer: l.renderer.renderer,
-            container: l.container,
+          const d = C.current;
+          return !d || !d.isInitialized ? q : {
+            scene: d.scene.scene,
+            camera: d.camera.camera,
+            renderer: d.renderer.renderer,
+            container: d.container,
             isReady: !0,
             isDisposed: !1
           };
         },
         getViewerCore() {
-          return A ? null : b.current;
+          return H ? null : C.current;
         },
         isReady() {
-          if (A)
+          if (H)
             return !1;
-          const l = b.current;
-          return l !== null && l.isInitialized;
+          const d = C.current;
+          return d !== null && d.isInitialized;
         },
         isDisposed() {
-          return A;
+          return H;
         }
       }),
-      [A]
-    ), E(() => {
-      const l = O.current;
-      if (!l)
+      [H]
+    ), P(() => {
+      var w;
+      const d = G.current;
+      if (!d)
         return;
-      const d = new Re();
-      d.initialize({
-        container: l,
+      const _ = new Se();
+      _.initialize({
+        container: d,
         antialias: !0,
         alpha: !0
       });
-      const v = new Te(), D = new ye(), w = new ze();
-      return d.plugins.register(v), d.plugins.register(D), d.plugins.register(w), b.current = d, k.current = v, C.current = D, P.current = w, U(d), B(!1), d.start(), () => {
-        d.dispose(), b.current = null, k.current = null, C.current = null, P.current = null, U(null), B(!0);
+      const x = new Te(), y = new Ae(), S = new ze();
+      _.plugins.register(x), _.plugins.register(y), _.plugins.register(S), C.current = _, O.current = x, k.current = y, L.current = S, K(_), W(!1);
+      try {
+        (w = N.current) == null || w.call(N, _);
+      } catch (E) {
+        console.error("onViewerReady callback failed:", E);
+      }
+      return _.start(), () => {
+        _.dispose(), C.current = null, O.current = null, k.current = null, L.current = null, K(null), W(!0);
       };
-    }, []), E(() => {
-      const l = O.current, d = b.current;
-      if (!l || !d)
+    }, []), P(() => {
+      const d = G.current, _ = C.current;
+      if (!d || !_)
         return;
-      const v = new ResizeObserver((D) => {
-        for (const w of D) {
-          const { width: S, height: x } = w.contentRect;
-          S > 0 && x > 0 && d.resize(S, x);
+      const x = new ResizeObserver((y) => {
+        for (const S of y) {
+          const { width: w, height: E } = S.contentRect;
+          w > 0 && E > 0 && _.resize(w, E);
         }
       });
-      return v.observe(l), () => {
-        v.disconnect();
+      return x.observe(d), () => {
+        x.disconnect();
       };
-    }, []), E(() => {
-      var D;
-      const l = k.current, d = C.current, v = P.current;
-      if (l) {
-        if (!e) {
-          l.unload();
-          return;
+    }, []), P(() => {
+      var S;
+      const d = O.current, _ = k.current, x = L.current;
+      if (!d)
+        return;
+      if (!e) {
+        d.unload();
+        return;
+      }
+      let y = !1;
+      return (S = v.current) == null || S.call(v, !0), d.load(e).then((w) => {
+        var s, l, u;
+        if (y) return;
+        (s = v.current) == null || s.call(v, !1), _ && !t && _.setTarget(w.center);
+        const E = w.boundingBox, T = new o.Vector3();
+        E.getSize(T);
+        const A = Math.max(T.x, T.y, T.z);
+        if (_ && !n) {
+          const p = ((l = C.current) == null ? void 0 : l.camera.camera.far) ?? 1e3, B = Math.min(A * 10, p * 0.9);
+          _.setZoomLimits(A * 0.1, B);
         }
-        (D = M.current) == null || D.call(M, !0), l.load(e).then((w) => {
-          var F, N, G;
-          (F = M.current) == null || F.call(M, !1), d && !t && d.setTarget(w.center);
-          const S = w.boundingBox, x = new h.Vector3();
-          S.getSize(x);
-          const R = Math.max(x.x, x.y, x.z);
-          if (d && !s) {
-            const L = ((N = b.current) == null ? void 0 : N.camera.camera.far) ?? 1e3, i = Math.min(R * 10, L * 0.9);
-            d.setZoomLimits(R * 0.1, i);
-          }
-          if (v && (!r || r.size === void 0)) {
-            const L = R * 3;
-            v.configure({
-              size: L,
-              divisions: 10,
-              axesSize: R * 1.5
-              // Axes 1.5x model size
-            });
-          }
-          (G = I.current) == null || G.call(I, w);
-        }).catch((w) => {
-          var x, R;
-          (x = M.current) == null || x.call(M, !1);
-          const S = w instanceof Error ? w : new Error(String(w));
-          (R = H.current) == null || R.call(H, S);
-        });
+        if (x && (!r || r.size === void 0)) {
+          const p = A * 3;
+          x.configure({
+            size: p,
+            divisions: 10,
+            axesSize: A * 1.5
+            // Axes 1.5x model size
+          });
+        }
+        (u = V.current) == null || u.call(V, w);
+      }).catch((w) => {
+        var T, A;
+        if (y) return;
+        (T = v.current) == null || T.call(v, !1);
+        const E = w instanceof Error ? w : new Error(String(w));
+        (A = F.current) == null || A.call(F, E);
+      }), () => {
+        y = !0;
+      };
+    }, [e]), P(() => {
+      const d = k.current;
+      if (d && t) {
+        const _ = new o.Vector3(t.x, t.y, t.z);
+        d.setTarget(_);
       }
-    }, [e]), E(() => {
-      const l = C.current;
-      if (l && t) {
-        const d = new h.Vector3(t.x, t.y, t.z);
-        l.setTarget(d);
+    }, [t]), P(() => {
+      const d = k.current;
+      if (d && n) {
+        const _ = n.min ?? 0.1, x = n.max ?? 1e4;
+        d.setZoomLimits(_, x);
       }
-    }, [t]), E(() => {
-      const l = C.current;
-      if (l && s) {
-        const d = s.min ?? 0.1, v = s.max ?? 1e4;
-        l.setZoomLimits(d, v);
-      }
-    }, [s]), E(() => {
-      const l = P.current;
-      if (l)
+    }, [n]), P(() => {
+      const d = L.current;
+      if (d)
         if (r) {
-          const d = {};
-          r.size !== void 0 && (d.size = r.size), r.divisions !== void 0 && (d.divisions = r.divisions), r.plane !== void 0 && (d.plane = r.plane), r.showAxes !== void 0 && (d.showAxes = r.showAxes), l.configure(d), l.setVisible(r.visible !== !1);
+          const _ = {};
+          r.size !== void 0 && (_.size = r.size), r.divisions !== void 0 && (_.divisions = r.divisions), r.plane !== void 0 && (_.plane = r.plane), r.showAxes !== void 0 && (_.showAxes = r.showAxes), d.configure(_), d.setVisible(r.visible !== !1);
         } else
-          l.setVisible(!1);
-    }, [r]);
+          d.setVisible(!1);
+    }, [r]), P(() => {
+      const d = C.current;
+      if (!d || !d.isInitialized)
+        return;
+      const _ = d.scene.scene;
+      a !== void 0 ? _.background = new o.Color(a) : _.background = new o.Color(_e);
+    }, [a, $]);
     const Q = {
       width: "100%",
       height: "100%",
-      ..._
+      ...f
     };
-    return /* @__PURE__ */ te.jsxs(ce, { viewerCore: X, children: [
-      /* @__PURE__ */ te.jsx(
+    return /* @__PURE__ */ se.jsxs(ce, { viewerCore: $, children: [
+      /* @__PURE__ */ se.jsx(
         "div",
         {
-          ref: O,
+          ref: G,
           className: c,
           style: Q
         }
       ),
-      z
+      I
     ] });
   }
 );
-He.displayName = "ThreeViewer";
-function Ne() {
-  const o = be(re);
-  if (o === void 0)
+Ne.displayName = "ThreeViewer";
+function $e() {
+  const h = xe(re);
+  if (h === void 0)
     throw new Error(
       "useThreeInstance must be used within a ThreeViewer component. Make sure your component is a child of <ThreeViewer>."
     );
-  return o;
+  return h;
 }
 export {
-  ve as CameraManager,
+  Ee as CameraManager,
+  Ye as CameraMovementPlugin,
+  qe as CameraPathAnimationPlugin,
+  We as CameraPathDesignerPlugin,
   ze as GridHelperPlugin,
   Te as ModelLoaderPlugin,
-  ye as OrbitControlsPlugin,
-  De as PluginSystem,
-  Ee as RenderManager,
-  Me as SceneManager,
-  He as ThreeViewer,
-  Re as ViewerCore,
-  Ne as useThreeInstance
+  Ae as OrbitControlsPlugin,
+  Ce as PluginSystem,
+  De as RenderManager,
+  ye as SceneManager,
+  Ne as ThreeViewer,
+  Se as ViewerCore,
+  $e as useThreeInstance
 };
 //# sourceMappingURL=threejs-viewer.mjs.map

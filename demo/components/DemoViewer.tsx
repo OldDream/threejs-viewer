@@ -37,10 +37,11 @@ interface DemoViewerProps {
   onLoad: (result: ModelLoadResult) => void;
   onError: (error: Error) => void;
   onLoadingChange: (loading: boolean) => void;
+  onViewerReady?: NonNullable<React.ComponentProps<typeof ThreeViewer>['onViewerReady']>;
 }
 
 export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
-  ({ modelUrl, pivotPoint, zoomLimits, grid, onLoad, onError, onLoadingChange }, ref) => {
+  ({ modelUrl, pivotPoint, zoomLimits, grid, onLoad, onError, onLoadingChange, onViewerReady }, ref) => {
     return (
       <div style={styles.viewerContainer}>
         {modelUrl ? (
@@ -54,6 +55,7 @@ export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
             onLoad={onLoad}
             onError={onError}
             onLoadingChange={onLoadingChange}
+            onViewerReady={onViewerReady}
             style={{ width: '100%', height: '100%' }}
           />
         ) : (

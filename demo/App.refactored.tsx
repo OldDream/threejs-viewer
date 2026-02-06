@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { ThreeViewerHandle } from '../src';
+import React, { useRef, useCallback } from 'react';
+import { ThreeViewerHandle, ViewerCore } from '../src';
 
 // Layout components
 import { DemoLayout, DemoMain } from './components/DemoLayout';
@@ -13,7 +13,7 @@ import { PivotPointControl } from './components/controls/PivotPointControl';
 import { ZoomLimitsControl } from './components/controls/ZoomLimitsControl';
 import { GridControl } from './components/controls/GridControl';
 import { CameraMovementControl } from './components/controls/CameraMovementControl';
-import { CameraAnimationControl } from './components/controls/CameraAnimationControl';
+import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
 import { StatusDisplay } from './components/controls/StatusDisplay';
 import { ControlsInstructions } from './components/controls/ControlsInstructions';
 
@@ -23,7 +23,7 @@ import { usePivotControl } from './hooks/usePivotControl';
 import { useZoomControl } from './hooks/useZoomControl';
 import { useGridControl } from './hooks/useGridControl';
 import { useCameraMovement } from './hooks/useCameraMovement';
-import { useCameraAnimation } from './hooks/useCameraAnimation';
+import { useCameraPathDesigner } from './hooks/useCameraPathDesigner';
 
 // Styles
 import { styles as themeStyles, colors } from './styles/theme';
@@ -55,12 +55,17 @@ const App: React.FC = () => {
   const pivotControl = usePivotControl();
   const zoomControl = useZoomControl();
   const gridControl = useGridControl();
-  const cameraAnimation = useCameraAnimation(viewerRef, modelLoader.loadResult);
-  const cameraMovement = useCameraMovement(viewerRef, cameraAnimation.isAnimating);
+  const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
+  const cameraMovement = useCameraMovement(viewerRef, cameraPathDesigner.isPlaying);
+
+  const handleViewerReady = useCallback((viewerCore: ViewerCore) => {
+    cameraPathDesigner.onViewerReady(viewerCore);
+    cameraMovement.onViewerReady(viewerCore);
+  }, [cameraMovement.onViewerReady, cameraPathDesigner.onViewerReady]);
 
   // Reset handler
   const handleReset = () => {
-    cameraAnimation.handleStop();
+    cameraPathDesigner.reset();
     modelLoader.handleReset();
     pivotControl.handleReset();
     zoomControl.handleReset();
@@ -121,17 +126,38 @@ const App: React.FC = () => {
             enabled={cameraMovement.enabled}
             speed={cameraMovement.speed}
             isCSMode={cameraMovement.isCSMode}
-            isAnimating={cameraAnimation.isAnimating}
+            isAnimating={cameraPathDesigner.isPlaying}
             onToggleEnabled={cameraMovement.setEnabled}
             onChangeSpeed={cameraMovement.setSpeed}
             onToggleCSMode={cameraMovement.setIsCSMode}
           />
 
-          <CameraAnimationControl
-            isAnimating={cameraAnimation.isAnimating}
-            viewMode={cameraAnimation.viewMode}
-            onToggle={cameraAnimation.handleToggle}
-            onChangeViewMode={cameraAnimation.setViewMode}
+          <CameraPathDesignerControl
+            isEditing={cameraPathDesigner.isEditing}
+            isPlaying={cameraPathDesigner.isPlaying}
+            duration={cameraPathDesigner.duration}
+            loop={cameraPathDesigner.loop}
+            easeInOut={cameraPathDesigner.easeInOut}
+            pointCount={cameraPathDesigner.pointCount}
+            selectedIndex={cameraPathDesigner.selectedIndex}
+            isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
+            shotJson={cameraPathDesigner.shotJson}
+            onToggleEditing={cameraPathDesigner.toggleEditing}
+            onAddPoint={cameraPathDesigner.addPoint}
+            onInsertPoint={cameraPathDesigner.insertPoint}
+            onDeletePoint={cameraPathDesigner.deletePoint}
+            onClearPath={cameraPathDesigner.clearPath}
+            onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+            onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
+            onPlay={cameraPathDesigner.play}
+            onStop={cameraPathDesigner.stop}
+            onExportShot={cameraPathDesigner.exportShot}
+            onImportShot={cameraPathDesigner.importShot}
+            onReset={cameraPathDesigner.reset}
+            onChangeDuration={cameraPathDesigner.setDuration}
+            onChangeLoop={cameraPathDesigner.setLoop}
+            onChangeEaseInOut={cameraPathDesigner.setEaseInOut}
+            onChangeShotJson={cameraPathDesigner.setShotJson}
           />
 
           <StatusDisplay
@@ -163,6 +189,7 @@ const App: React.FC = () => {
           onLoad={modelLoader.handleLoadSuccess}
           onError={modelLoader.handleLoadError}
           onLoadingChange={modelLoader.handleLoadingChange}
+          onViewerReady={handleViewerReady}
         />
       </DemoMain>
     </DemoLayout>

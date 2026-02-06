@@ -59,6 +59,7 @@ export interface ThreeViewerProps {
   onError?: (error: Error) => void;
   /** Callback when loading state changes */
   onLoadingChange?: (isLoading: boolean) => void;
+  onViewerReady?: (viewerCore: ViewerCore) => void;
   /** 子组件，可以使用 useThreeInstance Hook */
   children?: React.ReactNode;
 }
@@ -113,6 +114,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
       onLoad,
       onError,
       onLoadingChange,
+      onViewerReady,
       children,
     },
     ref
@@ -135,6 +137,7 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
     const onLoadRef = useRef(onLoad);
     const onErrorRef = useRef(onError);
     const onLoadingChangeRef = useRef(onLoadingChange);
+    const onViewerReadyRef = useRef(onViewerReady);
 
     // Update callback refs when props change
     useEffect(() => {
@@ -148,6 +151,10 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
     useEffect(() => {
       onLoadingChangeRef.current = onLoadingChange;
     }, [onLoadingChange]);
+
+    useEffect(() => {
+      onViewerReadyRef.current = onViewerReady;
+    }, [onViewerReady]);
 
     /**
      * Expose imperative handle via ref.
@@ -251,6 +258,12 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
       // Update state to trigger re-render for children with context
       setViewerCore(viewerCoreInstance);
       setIsDisposed(false);
+
+      try {
+        onViewerReadyRef.current?.(viewerCoreInstance);
+      } catch (e) {
+        console.error('onViewerReady callback failed:', e);
+      }
 
       // Start the render loop
       viewerCoreInstance.start();

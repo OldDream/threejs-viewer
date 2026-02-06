@@ -53,6 +53,12 @@ export {
   type CameraPathAnimationConfig
 } from './plugins/CameraPathAnimationPlugin';
 
+export {
+  CameraPathDesignerPlugin,
+  type CameraPathDesignerConfig,
+  type CameraPathDesignerShot
+} from './plugins/CameraPathDesignerPlugin';
+
 // React Component exports
 export {
   ThreeViewer,

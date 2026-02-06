@@ -5,7 +5,8 @@ import {
   CameraPathAnimationConfig, 
   ThreeViewerHandle, 
   IOrbitControlsPlugin,
-  ModelLoadResult 
+  ModelLoadResult,
+  ViewerCore
 } from '../../src';
 
 export function useCameraAnimation(
@@ -16,27 +17,30 @@ export function useCameraAnimation(
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'target' | 'fixed' | 'path'>('target');
 
-  // Register plugin
-  useEffect(() => {
-    const viewerCore = viewerRef.current?.getViewerCore();
-    if (!viewerCore || !viewerCore.isInitialized) {
-      return;
+  const onViewerReady = useCallback((viewerCore: ViewerCore) => {
+    const existing = viewerCore.plugins.get<CameraPathAnimationPlugin>('CameraPathAnimationPlugin');
+    const plugin = existing ?? new CameraPathAnimationPlugin();
+
+    if (!existing && !viewerCore.plugins.has(plugin.name)) {
+      viewerCore.plugins.register(plugin);
     }
 
-    const plugin = new CameraPathAnimationPlugin();
-    viewerCore.plugins.register(plugin);
     pluginRef.current = plugin;
 
     const orbitPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
     if (orbitPlugin) {
       plugin.setOrbitControlsPlugin(orbitPlugin);
     }
+  }, []);
 
+  useEffect(() => {
     return () => {
-      if (pluginRef.current) {
-        viewerCore.plugins.unregister(pluginRef.current.name);
-        pluginRef.current = null;
+      const viewerCore = viewerRef.current?.getViewerCore();
+      const plugin = pluginRef.current;
+      if (viewerCore && plugin) {
+        viewerCore.plugins.unregister(plugin.name);
       }
+      pluginRef.current = null;
     };
   }, [viewerRef]);
 
@@ -100,6 +104,7 @@ export function useCameraAnimation(
     isAnimating,
     viewMode,
     setViewMode,
+    onViewerReady,
     handleToggle,
     handleStop,
   };
