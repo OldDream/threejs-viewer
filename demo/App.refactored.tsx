@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { ThreeViewerHandle, ViewerCore } from '../src';
+import { type IOrbitControlsPlugin, ThreeViewerHandle, ViewerCore } from '../src';
 
 // Layout components
 import { DemoLayout, DemoMain } from './components/DemoLayout';
@@ -54,6 +54,10 @@ const App: React.FC = () => {
   const viewerRef = useRef<ThreeViewerHandle>(null);
   const viewerCoreRef = useRef<ViewerCore | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraFeatureMode>('animation');
+  const [viewerCoreRevision, setViewerCoreRevision] = useState(0);
+  const pivotSyncRafRef = useRef<number | null>(null);
+  const pendingPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const lastSyncedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
 
   // Business logic hooks
   const modelLoader = useModelLoader();
@@ -83,6 +87,7 @@ const App: React.FC = () => {
 
   const handleViewerReady = useCallback((viewerCore: ViewerCore) => {
     viewerCoreRef.current = viewerCore;
+    setViewerCoreRevision((v) => v + 1);
     cameraMovement.onViewerReady(viewerCore);
     if (cameraMode === 'animation') {
       cameraAnimation.onViewerReady(viewerCore);
@@ -95,6 +100,53 @@ const App: React.FC = () => {
     cameraMovement.onViewerReady,
     cameraPathDesigner.onViewerReady,
   ]);
+
+  useEffect(() => {
+    const viewerCore = viewerCoreRef.current;
+    if (!viewerCore) return;
+
+    const orbitControlsPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
+    const controls = orbitControlsPlugin?.controls;
+    if (!controls) return;
+
+    const handleControlsChange = () => {
+      const target = controls.target as { x: number; y: number; z: number };
+      const next = { x: target.x, y: target.y, z: target.z };
+      pendingPivotRef.current = next;
+
+      if (pivotSyncRafRef.current !== null) return;
+      pivotSyncRafRef.current = window.requestAnimationFrame(() => {
+        pivotSyncRafRef.current = null;
+        const pending = pendingPivotRef.current;
+        if (!pending) return;
+
+        const prev = lastSyncedPivotRef.current;
+        const eps = 1e-6;
+        if (
+          prev &&
+          Math.abs(prev.x - pending.x) < eps &&
+          Math.abs(prev.y - pending.y) < eps &&
+          Math.abs(prev.z - pending.z) < eps
+        ) {
+          return;
+        }
+
+        lastSyncedPivotRef.current = pending;
+        pivotControl.syncFromTarget(pending);
+      });
+    };
+
+    controls.addEventListener('change', handleControlsChange);
+    handleControlsChange();
+
+    return () => {
+      controls.removeEventListener('change', handleControlsChange);
+      if (pivotSyncRafRef.current !== null) {
+        window.cancelAnimationFrame(pivotSyncRafRef.current);
+        pivotSyncRafRef.current = null;
+      }
+    };
+  }, [pivotControl.syncFromTarget, viewerCoreRevision]);
 
   useEffect(() => {
     const viewerCore = viewerCoreRef.current;

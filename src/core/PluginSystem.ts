@@ -55,6 +55,7 @@ export interface IPluginSystem {
   register(plugin: Plugin): void;
   unregister(pluginName: string): void;
   get<T extends Plugin>(pluginName: string): T | undefined;
+  has(pluginName: string): boolean;
   updateAll(deltaTime: number): void;
   disposeAll(): void;
 }
