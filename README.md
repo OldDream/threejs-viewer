@@ -174,6 +174,27 @@ function App() {
 }
 ```
 
+### 初始化回调（插件注册推荐）
+
+在 ViewerCore 初始化完成、内置插件注册完成、render loop 启动前触发，可用于可靠地注册自定义插件：
+
+```tsx
+import { ThreeViewer, CameraMovementPlugin } from 'threejs-viewer';
+
+function App() {
+  return (
+    <ThreeViewer
+      modelUrl="/model.glb"
+      onViewerReady={(viewerCore) => {
+        if (!viewerCore.plugins.has('CameraMovementPlugin')) {
+          viewerCore.plugins.register(new CameraMovementPlugin());
+        }
+      }}
+    />
+  );
+}
+```
+
 ### ThreeInstanceContextValue
 
 Hook 返回的上下文值类型：

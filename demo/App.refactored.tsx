@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { ThreeViewerHandle, ViewerCore } from '../src';
 
 // Layout components
@@ -12,7 +12,9 @@ import { ModelUrlControl } from './components/controls/ModelUrlControl';
 import { PivotPointControl } from './components/controls/PivotPointControl';
 import { ZoomLimitsControl } from './components/controls/ZoomLimitsControl';
 import { GridControl } from './components/controls/GridControl';
+import { CameraModeControl, CameraFeatureMode } from './components/controls/CameraModeControl';
 import { CameraMovementControl } from './components/controls/CameraMovementControl';
+import { CameraAnimationControl } from './components/controls/CameraAnimationControl';
 import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
 import { StatusDisplay } from './components/controls/StatusDisplay';
 import { ControlsInstructions } from './components/controls/ControlsInstructions';
@@ -23,6 +25,7 @@ import { usePivotControl } from './hooks/usePivotControl';
 import { useZoomControl } from './hooks/useZoomControl';
 import { useGridControl } from './hooks/useGridControl';
 import { useCameraMovement } from './hooks/useCameraMovement';
+import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { useCameraPathDesigner } from './hooks/useCameraPathDesigner';
 
 // Styles
@@ -49,22 +52,63 @@ const spinnerKeyframes = `
  */
 const App: React.FC = () => {
   const viewerRef = useRef<ThreeViewerHandle>(null);
+  const viewerCoreRef = useRef<ViewerCore | null>(null);
+  const [cameraMode, setCameraMode] = useState<CameraFeatureMode>('animation');
 
   // Business logic hooks
   const modelLoader = useModelLoader();
   const pivotControl = usePivotControl();
   const zoomControl = useZoomControl();
   const gridControl = useGridControl();
+  const cameraAnimation = useCameraAnimation(viewerRef, modelLoader.loadResult);
   const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
-  const cameraMovement = useCameraMovement(viewerRef, cameraPathDesigner.isPlaying);
+  const isCameraLocked = cameraAnimation.isAnimating || cameraPathDesigner.isPlaying;
+  const cameraMovement = useCameraMovement(viewerRef, isCameraLocked);
+
+  const handleChangeCameraMode = useCallback((mode: CameraFeatureMode) => {
+    if (mode === cameraMode) return;
+    cameraAnimation.handleStop();
+    cameraPathDesigner.stop();
+    if (cameraPathDesigner.isEditing) {
+      cameraPathDesigner.toggleEditing();
+    }
+    setCameraMode(mode);
+  }, [
+    cameraAnimation.handleStop,
+    cameraMode,
+    cameraPathDesigner.isEditing,
+    cameraPathDesigner.stop,
+    cameraPathDesigner.toggleEditing,
+  ]);
 
   const handleViewerReady = useCallback((viewerCore: ViewerCore) => {
-    cameraPathDesigner.onViewerReady(viewerCore);
+    viewerCoreRef.current = viewerCore;
     cameraMovement.onViewerReady(viewerCore);
-  }, [cameraMovement.onViewerReady, cameraPathDesigner.onViewerReady]);
+    if (cameraMode === 'animation') {
+      cameraAnimation.onViewerReady(viewerCore);
+    } else {
+      cameraPathDesigner.onViewerReady(viewerCore);
+    }
+  }, [
+    cameraAnimation.onViewerReady,
+    cameraMode,
+    cameraMovement.onViewerReady,
+    cameraPathDesigner.onViewerReady,
+  ]);
+
+  useEffect(() => {
+    const viewerCore = viewerCoreRef.current;
+    if (!viewerCore) return;
+    if (cameraMode === 'animation') {
+      cameraAnimation.onViewerReady(viewerCore);
+    } else {
+      cameraPathDesigner.onViewerReady(viewerCore);
+    }
+  }, [cameraAnimation.onViewerReady, cameraMode, cameraPathDesigner.onViewerReady]);
 
   // Reset handler
   const handleReset = () => {
+    cameraAnimation.handleStop();
     cameraPathDesigner.reset();
     modelLoader.handleReset();
     pivotControl.handleReset();
@@ -122,43 +166,54 @@ const App: React.FC = () => {
             onChangePlane={gridControl.setGridPlane}
           />
 
+          <CameraModeControl mode={cameraMode} onChangeMode={handleChangeCameraMode} />
+
           <CameraMovementControl
             enabled={cameraMovement.enabled}
             speed={cameraMovement.speed}
             isCSMode={cameraMovement.isCSMode}
-            isAnimating={cameraPathDesigner.isPlaying}
+            isAnimating={isCameraLocked}
             onToggleEnabled={cameraMovement.setEnabled}
             onChangeSpeed={cameraMovement.setSpeed}
             onToggleCSMode={cameraMovement.setIsCSMode}
           />
 
-          <CameraPathDesignerControl
-            isEditing={cameraPathDesigner.isEditing}
-            isPlaying={cameraPathDesigner.isPlaying}
-            duration={cameraPathDesigner.duration}
-            loop={cameraPathDesigner.loop}
-            easeInOut={cameraPathDesigner.easeInOut}
-            pointCount={cameraPathDesigner.pointCount}
-            selectedIndex={cameraPathDesigner.selectedIndex}
-            isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
-            shotJson={cameraPathDesigner.shotJson}
-            onToggleEditing={cameraPathDesigner.toggleEditing}
-            onAddPoint={cameraPathDesigner.addPoint}
-            onInsertPoint={cameraPathDesigner.insertPoint}
-            onDeletePoint={cameraPathDesigner.deletePoint}
-            onClearPath={cameraPathDesigner.clearPath}
-            onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
-            onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
-            onPlay={cameraPathDesigner.play}
-            onStop={cameraPathDesigner.stop}
-            onExportShot={cameraPathDesigner.exportShot}
-            onImportShot={cameraPathDesigner.importShot}
-            onReset={cameraPathDesigner.reset}
-            onChangeDuration={cameraPathDesigner.setDuration}
-            onChangeLoop={cameraPathDesigner.setLoop}
-            onChangeEaseInOut={cameraPathDesigner.setEaseInOut}
-            onChangeShotJson={cameraPathDesigner.setShotJson}
-          />
+          {cameraMode === 'animation' ? (
+            <CameraAnimationControl
+              isAnimating={cameraAnimation.isAnimating}
+              viewMode={cameraAnimation.viewMode}
+              onToggle={cameraAnimation.handleToggle}
+              onChangeViewMode={cameraAnimation.setViewMode}
+            />
+          ) : (
+            <CameraPathDesignerControl
+              isEditing={cameraPathDesigner.isEditing}
+              isPlaying={cameraPathDesigner.isPlaying}
+              duration={cameraPathDesigner.duration}
+              loop={cameraPathDesigner.loop}
+              easeInOut={cameraPathDesigner.easeInOut}
+              pointCount={cameraPathDesigner.pointCount}
+              selectedIndex={cameraPathDesigner.selectedIndex}
+              isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
+              shotJson={cameraPathDesigner.shotJson}
+              onToggleEditing={cameraPathDesigner.toggleEditing}
+              onAddPoint={cameraPathDesigner.addPoint}
+              onInsertPoint={cameraPathDesigner.insertPoint}
+              onDeletePoint={cameraPathDesigner.deletePoint}
+              onClearPath={cameraPathDesigner.clearPath}
+              onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+              onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
+              onPlay={cameraPathDesigner.play}
+              onStop={cameraPathDesigner.stop}
+              onExportShot={cameraPathDesigner.exportShot}
+              onImportShot={cameraPathDesigner.importShot}
+              onReset={cameraPathDesigner.reset}
+              onChangeDuration={cameraPathDesigner.setDuration}
+              onChangeLoop={cameraPathDesigner.setLoop}
+              onChangeEaseInOut={cameraPathDesigner.setEaseInOut}
+              onChangeShotJson={cameraPathDesigner.setShotJson}
+            />
+          )}
 
           <StatusDisplay
             isLoading={modelLoader.isLoading}
