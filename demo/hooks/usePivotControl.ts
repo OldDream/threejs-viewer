@@ -22,23 +22,8 @@ export function usePivotControl() {
       setPivotX((prev) => (prev === nextX ? prev : nextX));
       setPivotY((prev) => (prev === nextY ? prev : nextY));
       setPivotZ((prev) => (prev === nextZ ? prev : nextZ));
-
-      if (usePivotPoint) {
-        setPivotPoint((prev) => {
-          if (!prev) return { x: target.x, y: target.y, z: target.z };
-          const eps = 1e-6;
-          if (
-            Math.abs(prev.x - target.x) < eps &&
-            Math.abs(prev.y - target.y) < eps &&
-            Math.abs(prev.z - target.z) < eps
-          ) {
-            return prev;
-          }
-          return { x: target.x, y: target.y, z: target.z };
-        });
-      }
     },
-    [formatCoord, usePivotPoint]
+    [formatCoord]
   );
 
   const handleApply = useCallback(() => {

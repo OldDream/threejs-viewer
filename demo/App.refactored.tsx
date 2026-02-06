@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const pivotSyncRafRef = useRef<number | null>(null);
   const pendingPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
   const lastSyncedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const lockedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
 
   // Business logic hooks
   const modelLoader = useModelLoader();
@@ -110,8 +111,36 @@ const App: React.FC = () => {
     if (!controls) return;
 
     const handleControlsChange = () => {
-      const target = controls.target as { x: number; y: number; z: number };
+      const target = controls.target;
       const next = { x: target.x, y: target.y, z: target.z };
+
+      if (pivotControl.usePivotPoint) {
+        const lockedFromProps = pivotControl.pivotPoint
+          ? { ...pivotControl.pivotPoint }
+          : null;
+
+        if (lockedFromProps) {
+          lockedPivotRef.current = lockedFromProps;
+        } else if (!lockedPivotRef.current) {
+          lockedPivotRef.current = next;
+        }
+
+        const locked = lockedPivotRef.current;
+        if (!locked) return;
+
+        const eps = 1e-6;
+        if (
+          Math.abs(next.x - locked.x) > eps ||
+          Math.abs(next.y - locked.y) > eps ||
+          Math.abs(next.z - locked.z) > eps
+        ) {
+          controls.target.set(locked.x, locked.y, locked.z);
+          controls.update();
+        }
+        return;
+      }
+
+      lockedPivotRef.current = null;
       pendingPivotRef.current = next;
 
       if (pivotSyncRafRef.current !== null) return;
@@ -146,7 +175,12 @@ const App: React.FC = () => {
         pivotSyncRafRef.current = null;
       }
     };
-  }, [pivotControl.syncFromTarget, viewerCoreRevision]);
+  }, [
+    pivotControl.pivotPoint,
+    pivotControl.syncFromTarget,
+    pivotControl.usePivotPoint,
+    viewerCoreRevision,
+  ]);
 
   useEffect(() => {
     const viewerCore = viewerCoreRef.current;
