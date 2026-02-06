@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import * as THREE from 'three';
 import { ViewerCore } from '../core/ViewerCore';
-import { ModelLoaderPlugin, ModelLoadResult } from '../plugins/ModelLoaderPlugin';
+import { ModelLoaderPlugin, ModelLoadCancelledError, ModelLoadResult } from '../plugins/ModelLoaderPlugin';
 import { OrbitControlsPlugin } from '../plugins/OrbitControlsPlugin';
 import { GridHelperPlugin, GridPlane } from '../plugins/GridHelperPlugin';
 import { ThreeInstanceProvider } from '../context/ThreeInstanceProvider';
@@ -330,7 +330,9 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
 
       // If no URL provided, unload any existing model
       if (!modelUrl) {
+        modelLoader.cancel();
         modelLoader.unload();
+        onLoadingChangeRef.current?.(false);
         return;
       }
 
@@ -385,6 +387,11 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
         })
         .catch((error) => {
           if (isCancelled) return;
+
+          if (error instanceof ModelLoadCancelledError) {
+            onLoadingChangeRef.current?.(false);
+            return;
+          }
 
           // Notify loading completed (with error)
           onLoadingChangeRef.current?.(false);

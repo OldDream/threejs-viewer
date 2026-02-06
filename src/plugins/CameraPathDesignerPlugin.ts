@@ -65,6 +65,11 @@ export class CameraPathDesignerPlugin implements Plugin {
   private _lineGeometry: THREE.BufferGeometry | null = null;
   private _lineMaterial: THREE.LineBasicMaterial | null = null;
 
+  private _selectionHalo: THREE.Mesh | null = null;
+  private _selectionHaloGeometry: THREE.RingGeometry | null = null;
+  private _selectionHaloMaterial: THREE.MeshBasicMaterial | null = null;
+  private _pulseTime = 0;
+
   private _samples = 200;
 
   private _pointSize = 0.12;
@@ -209,8 +214,46 @@ export class CameraPathDesignerPlugin implements Plugin {
     dom.removeEventListener('pointerup', this._onPointerUp);
 
     if (this._helpersGroup) this._helpersGroup.visible = false;
+    if (this._selectionHalo) this._selectionHalo.visible = false;
+    this._resetPointScales();
     if (this._orbitControlsPlugin) {
       this._orbitControlsPlugin.controls.enabled = this._wasOrbitControlsEnabled;
+    }
+  }
+
+  update(deltaTime: number): void {
+    if (!this._context || this._isDisposed) return;
+    if (!this._enabled) return;
+
+    this._pulseTime += deltaTime;
+
+    const selectedIndex = this._selectedIndex;
+    const pulse = 0.5 + 0.5 * Math.sin(this._pulseTime * 6);
+    const selectedScale = 1 + 0.35 * pulse;
+
+    for (let i = 0; i < this._pointMeshes.length; i++) {
+      const mesh = this._pointMeshes[i];
+      if (!mesh) continue;
+      mesh.scale.setScalar(i === selectedIndex ? selectedScale : 1);
+    }
+
+    if (this._selectionHalo && this._selectionHaloMaterial) {
+      if (selectedIndex === null) {
+        this._selectionHalo.visible = false;
+        return;
+      }
+
+      const selectedMesh = this._pointMeshes[selectedIndex];
+      if (!selectedMesh) {
+        this._selectionHalo.visible = false;
+        return;
+      }
+
+      this._selectionHalo.visible = true;
+      this._selectionHalo.position.copy(selectedMesh.position);
+      this._selectionHalo.quaternion.copy(this._context.camera.quaternion);
+      this._selectionHalo.scale.setScalar(1 + 0.65 * pulse);
+      this._selectionHaloMaterial.opacity = 0.25 + 0.45 * pulse;
     }
   }
 
@@ -394,6 +437,8 @@ export class CameraPathDesignerPlugin implements Plugin {
     this._targetMaterial?.dispose();
     this._lineGeometry?.dispose();
     this._lineMaterial?.dispose();
+    this._selectionHaloGeometry?.dispose();
+    this._selectionHaloMaterial?.dispose();
 
     this._helpersGroup = null;
     this._pointGeometry = null;
@@ -405,6 +450,9 @@ export class CameraPathDesignerPlugin implements Plugin {
     this._line = null;
     this._lineGeometry = null;
     this._lineMaterial = null;
+    this._selectionHalo = null;
+    this._selectionHaloGeometry = null;
+    this._selectionHaloMaterial = null;
     this._context = null;
     this._orbitControlsPlugin = null;
     this._target = null;
@@ -433,6 +481,27 @@ export class CameraPathDesignerPlugin implements Plugin {
       this._line = new THREE.Line(this._lineGeometry, this._lineMaterial);
       this._line.renderOrder = 9999;
       this._helpersGroup.add(this._line);
+    }
+
+    if (!this._selectionHaloGeometry) {
+      this._selectionHaloGeometry = new THREE.RingGeometry(this._pointSize * 2.1, this._pointSize * 3.6, 40);
+    }
+    if (!this._selectionHaloMaterial) {
+      this._selectionHaloMaterial = new THREE.MeshBasicMaterial({
+        color: this._selectedPointColor,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+    }
+    if (!this._selectionHalo) {
+      this._selectionHalo = new THREE.Mesh(this._selectionHaloGeometry, this._selectionHaloMaterial);
+      this._selectionHalo.visible = false;
+      this._selectionHalo.renderOrder = 11000;
+      this._helpersGroup.add(this._selectionHalo);
     }
 
     if (!this._targetMesh) {
@@ -467,14 +536,25 @@ export class CameraPathDesignerPlugin implements Plugin {
     this._selectedPointMaterial?.dispose();
     this._lineMaterial?.dispose();
     this._targetMaterial?.dispose();
+    this._selectionHaloMaterial?.dispose();
 
     this._pointMaterial = new THREE.MeshBasicMaterial({ color: this._pointColor });
     this._selectedPointMaterial = new THREE.MeshBasicMaterial({ color: this._selectedPointColor });
     this._lineMaterial = new THREE.LineBasicMaterial({ color: this._lineColor });
     this._targetMaterial = new THREE.MeshBasicMaterial({ color: this._targetColor });
+    this._selectionHaloMaterial = new THREE.MeshBasicMaterial({
+      color: this._selectedPointColor,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
 
     if (this._line) this._line.material = this._lineMaterial;
     if (this._targetMesh) this._targetMesh.material = this._targetMaterial;
+    if (this._selectionHalo) this._selectionHalo.material = this._selectionHaloMaterial;
     this._syncPointMaterials();
   }
 
@@ -487,6 +567,12 @@ export class CameraPathDesignerPlugin implements Plugin {
     }
   }
 
+  private _resetPointScales(): void {
+    for (const mesh of this._pointMeshes) {
+      mesh.scale.setScalar(1);
+    }
+  }
+
   private _syncHelpers(): void {
     if (!this._context || !this._helpersGroup) return;
 
@@ -496,6 +582,10 @@ export class CameraPathDesignerPlugin implements Plugin {
       if (!mesh || !p) continue;
       mesh.position.copy(p);
       mesh.visible = this._enabled;
+    }
+
+    if (!this._enabled && this._selectionHalo) {
+      this._selectionHalo.visible = false;
     }
 
     if (this._targetMesh) {

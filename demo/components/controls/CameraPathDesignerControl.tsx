@@ -10,6 +10,81 @@ const styles = {
     marginBottom: spacing.md,
   } as React.CSSProperties,
 
+  listContainer: {
+    marginTop: spacing.md,
+    border: `1px solid ${colors.border.primary}`,
+    borderRadius: '6px',
+    overflow: 'hidden',
+  } as React.CSSProperties,
+
+  listHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 10px',
+    backgroundColor: colors.background.secondary,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.xs,
+  } as React.CSSProperties,
+
+  listBody: {
+    maxHeight: '160px',
+    overflowY: 'auto',
+    backgroundColor: colors.background.tertiary,
+  } as React.CSSProperties,
+
+  listRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: '8px 10px',
+    borderTop: `1px solid ${colors.border.primary}`,
+    userSelect: 'none',
+  } as React.CSSProperties,
+
+  listRowSelected: {
+    backgroundColor: colors.background.secondary,
+  } as React.CSSProperties,
+
+  listRowMain: {
+    flex: 1,
+    display: 'flex',
+    gap: spacing.sm,
+    alignItems: 'baseline',
+    minWidth: 0,
+  } as React.CSSProperties,
+
+  listIndex: {
+    width: '44px',
+    flex: '0 0 auto',
+    color: colors.text.accent,
+    fontSize: typography.fontSize.xs,
+  } as React.CSSProperties,
+
+  listCoords: {
+    flex: 1,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.xs,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  } as React.CSSProperties,
+
+  listAction: {
+    ...themeStyles.buttonSecondary,
+    width: 'auto',
+    flex: '0 0 auto',
+    padding: '6px 10px',
+    fontSize: typography.fontSize.xs,
+  } as React.CSSProperties,
+
+  listEmpty: {
+    padding: spacing.md,
+    color: colors.text.secondary,
+    fontSize: typography.fontSize.xs,
+    lineHeight: 1.4,
+  } as React.CSSProperties,
+
   half: {
     flex: 1,
   } as React.CSSProperties,
@@ -42,6 +117,7 @@ interface CameraPathDesignerControlProps {
   duration: number;
   loop: boolean;
   easeInOut: number;
+  points: Array<{ x: number; y: number; z: number }>;
   pointCount: number;
   selectedIndex: number | null;
   isPickTargetArmed: boolean;
@@ -50,6 +126,9 @@ interface CameraPathDesignerControlProps {
   onAddPoint: () => void;
   onInsertPoint: () => void;
   onDeletePoint: () => void;
+  onSelectPoint: (index: number) => void;
+  onInsertPointAfterAt: (index: number) => void;
+  onDeletePointAt: (index: number) => void;
   onClearPath: () => void;
   onSetTargetToCenter: () => void;
   onPickTargetOnce: () => void;
@@ -71,6 +150,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
     duration,
     loop,
     easeInOut,
+    points,
     pointCount,
     selectedIndex,
     isPickTargetArmed,
@@ -79,6 +159,9 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
     onAddPoint,
     onInsertPoint,
     onDeletePoint,
+    onSelectPoint,
+    onInsertPointAfterAt,
+    onDeletePointAt,
     onClearPath,
     onSetTargetToCenter,
     onPickTargetOnce,
@@ -148,6 +231,62 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
       <div style={styles.hint}>
         Points: {pointCount}
         {selectedIndex !== null ? ` · Selected: #${selectedIndex + 1}` : ''}
+      </div>
+
+      <div style={styles.listContainer}>
+        <div style={styles.listHeader}>
+          <div>Points List</div>
+          <div>{selectedIndex !== null ? `Selected: #${selectedIndex + 1}` : 'No selection'}</div>
+        </div>
+        <div style={styles.listBody}>
+          {points.length === 0 ? (
+            <div style={styles.listEmpty}>Add points to start building a camera path.</div>
+          ) : (
+            points.map((p, index) => {
+              const isSelected = selectedIndex === index;
+              const coords = `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`;
+              return (
+                <div
+                  key={index}
+                  onClick={() => onSelectPoint(index)}
+                  style={{
+                    ...styles.listRow,
+                    ...(isSelected ? styles.listRowSelected : null),
+                    cursor: isPlaying ? 'not-allowed' : 'pointer',
+                    opacity: isPlaying ? 0.6 : 1,
+                  }}
+                >
+                  <div style={styles.listRowMain}>
+                    <div style={styles.listIndex}>#{index + 1}</div>
+                    <div style={styles.listCoords} title={coords}>
+                      {coords}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onInsertPointAfterAt(index);
+                    }}
+                    disabled={isPlaying}
+                    style={styles.listAction}
+                  >
+                    Insert
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeletePointAt(index);
+                    }}
+                    disabled={isPlaying}
+                    style={{ ...styles.listAction, backgroundColor: colors.button.neutral }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       <div style={{ ...styles.row, marginTop: spacing.lg }}>
@@ -261,4 +400,3 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
     </ControlSection>
   );
 }
-

@@ -24,6 +24,7 @@ export function useCameraPathDesigner(
   const [loop, setLoop] = useState<boolean>(false);
   const [easeInOut, setEaseInOut] = useState<number>(0.6);
 
+  const [points, setPoints] = useState<Array<{ x: number; y: number; z: number }>>([]);
   const [pointCount, setPointCount] = useState<number>(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isPickTargetArmed, setIsPickTargetArmed] = useState<boolean>(false);
@@ -37,9 +38,12 @@ export function useCameraPathDesigner(
   const syncFromDesigner = useCallback(() => {
     const d = designerRef.current;
     if (!d) return;
-    setPointCount(d.getPathPoints().length);
+    const pathPoints = d.getPathPoints();
+    setPoints(pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z })));
+    setPointCount(pathPoints.length);
     setSelectedIndex(d.getSelectedIndex());
     setIsPickTargetArmed(d.isPickTargetArmed());
+    setIsEditing(d.isEnabled());
   }, []);
 
   const onViewerReady = useCallback((viewerCore: ViewerCore) => {
@@ -161,6 +165,42 @@ export function useCameraPathDesigner(
     syncFromDesigner();
   }, [syncFromDesigner]);
 
+  const selectPoint = useCallback(
+    (index: number) => {
+      const d = designerRef.current;
+      if (!d) return;
+      if (isPlaying) return;
+      if (!d.isEnabled()) d.enable();
+      d.setSelectedIndex(index);
+      syncFromDesigner();
+    },
+    [isPlaying, syncFromDesigner]
+  );
+
+  const insertPointAfterAt = useCallback(
+    (index: number) => {
+      const d = designerRef.current;
+      if (!d) return;
+      if (isPlaying) return;
+      if (!d.isEnabled()) d.enable();
+      d.insertPointAfter(index);
+      syncFromDesigner();
+    },
+    [isPlaying, syncFromDesigner]
+  );
+
+  const deletePointAt = useCallback(
+    (index: number) => {
+      const d = designerRef.current;
+      if (!d) return;
+      if (isPlaying) return;
+      if (!d.isEnabled()) d.enable();
+      d.removePoint(index);
+      syncFromDesigner();
+    },
+    [isPlaying, syncFromDesigner]
+  );
+
   const clearPath = useCallback(() => {
     const d = designerRef.current;
     if (!d) return;
@@ -260,6 +300,7 @@ export function useCameraPathDesigner(
     duration,
     loop,
     easeInOut,
+    points,
     pointCount,
     selectedIndex,
     isPickTargetArmed,
@@ -272,6 +313,9 @@ export function useCameraPathDesigner(
     addPoint,
     insertPoint,
     deletePoint,
+    selectPoint,
+    insertPointAfterAt,
+    deletePointAt,
     clearPath,
     setTargetToCenter,
     pickTargetOnce,
@@ -282,4 +326,3 @@ export function useCameraPathDesigner(
     reset,
   };
 }
-

@@ -27,6 +27,13 @@ export interface LoadingState {
   error: Error | null;
 }
 
+export class ModelLoadCancelledError extends Error {
+  constructor(message: string = 'Model loading cancelled') {
+    super(message);
+    this.name = 'ModelLoadCancelledError';
+  }
+}
+
 /**
  * ModelLoaderPlugin Interface
  * Extends the base Plugin interface with model loading capabilities.
@@ -35,6 +42,7 @@ export interface IModelLoaderPlugin extends Plugin {
   readonly loadingState: LoadingState;
   
   load(url: string): Promise<ModelLoadResult>;
+  cancel(): void;
   unload(): void;
   getCenter(): THREE.Vector3 | null;
   getBoundingBox(): THREE.Box3 | null;
@@ -146,7 +154,7 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
       if (requestId !== this._loadRequestId) {
         // If not, dispose of the loaded model and throw a cancellation error
         this._disposeObject(gltf.scene);
-        throw new Error('Model loading cancelled due to new request');
+        throw new ModelLoadCancelledError('Model loading cancelled due to new request');
       }
 
       // Requirement 1.1: Add the model to the scene
@@ -194,6 +202,19 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
 
       throw loadError;
     }
+  }
+
+  cancel(): void {
+    if (this._isDisposed) {
+      return;
+    }
+
+    this._loadRequestId += 1;
+    this._loadingState = {
+      isLoading: false,
+      progress: 0,
+      error: null,
+    };
   }
 
   /**

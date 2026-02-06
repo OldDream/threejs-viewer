@@ -278,6 +278,7 @@ const App: React.FC = () => {
               duration={cameraPathDesigner.duration}
               loop={cameraPathDesigner.loop}
               easeInOut={cameraPathDesigner.easeInOut}
+              points={cameraPathDesigner.points}
               pointCount={cameraPathDesigner.pointCount}
               selectedIndex={cameraPathDesigner.selectedIndex}
               isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
@@ -286,6 +287,9 @@ const App: React.FC = () => {
               onAddPoint={cameraPathDesigner.addPoint}
               onInsertPoint={cameraPathDesigner.insertPoint}
               onDeletePoint={cameraPathDesigner.deletePoint}
+              onSelectPoint={cameraPathDesigner.selectPoint}
+              onInsertPointAfterAt={cameraPathDesigner.insertPointAfterAt}
+              onDeletePointAt={cameraPathDesigner.deletePointAt}
               onClearPath={cameraPathDesigner.clearPath}
               onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
               onPickTargetOnce={cameraPathDesigner.pickTargetOnce}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ModelLoadResult } from '../../src';
 import { LocalFileManager } from '../../src/utils/LocalFileManager';
 
@@ -20,6 +20,8 @@ export function useModelLoader() {
   const [loadResult, setLoadResult] = useState<ModelLoadResult | null>(null);
   
   const [localFileManager] = useState(() => new LocalFileManager());
+  const loadRequestIdRef = useRef(0);
+  const loadPhaseRef = useRef<'idle' | 'preparing' | 'viewer'>('idle');
   const [fileState, setFileState] = useState<FileState>({
     selectedModelFile: null,
     selectedTextureFiles: [],
@@ -28,30 +30,62 @@ export function useModelLoader() {
     isFolderMode: false,
   });
 
+  const cancelInFlightLoad = useCallback(() => {
+    if (loadPhaseRef.current === 'idle') return;
+
+    const wasViewerPhase = loadPhaseRef.current === 'viewer';
+    loadRequestIdRef.current += 1;
+    loadPhaseRef.current = 'idle';
+
+    setIsLoading(false);
+    setError(null);
+    setLoadResult(null);
+
+    if (wasViewerPhase) {
+      setModelUrl('');
+    }
+
+    localFileManager.cleanup();
+  }, [localFileManager]);
+
   const handleLoad = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
+    loadPhaseRef.current = 'preparing';
+
+    setIsLoading(true);
     setError(null);
     setLoadResult(null);
     
     try {
       if (fileState.isFolderMode && fileState.selectedFolderFiles.length > 0) {
         const result = await localFileManager.loadModelFromFolder(fileState.selectedFolderFiles);
+        if (requestId !== loadRequestIdRef.current) return;
+        loadPhaseRef.current = 'viewer';
         setModelUrl(result.modelUrl);
       } else if (fileState.isLocalFile && fileState.selectedModelFile) {
         const result = await localFileManager.loadModelFromFiles(
           fileState.selectedModelFile,
           fileState.selectedTextureFiles
         );
+        if (requestId !== loadRequestIdRef.current) return;
+        loadPhaseRef.current = 'viewer';
         setModelUrl(result.modelUrl);
       } else {
+        if (requestId !== loadRequestIdRef.current) return;
+        loadPhaseRef.current = 'viewer';
         setModelUrl(inputUrl);
       }
     } catch (err) {
+      if (requestId !== loadRequestIdRef.current) return;
+      loadPhaseRef.current = 'idle';
       setError(err as Error);
+      setIsLoading(false);
     }
   }, [fileState, inputUrl, localFileManager]);
 
   const handleFolderSelect = useCallback((files: File[]) => {
     if (files.length > 0) {
+      cancelInFlightLoad();
       setFileState({
         selectedModelFile: null,
         selectedTextureFiles: [],
@@ -61,9 +95,10 @@ export function useModelLoader() {
       });
       setInputUrl(`[Local Folder] ${files.length} files selected`);
     }
-  }, []);
+  }, [cancelInFlightLoad]);
 
   const handleModelFileSelect = useCallback((file: File) => {
+    cancelInFlightLoad();
     setFileState({
       selectedModelFile: file,
       selectedTextureFiles: [],
@@ -72,7 +107,7 @@ export function useModelLoader() {
       isFolderMode: false,
     });
     setInputUrl(`[Local File] ${file.name}`);
-  }, []);
+  }, [cancelInFlightLoad]);
 
   const handleTextureFilesSelect = useCallback((files: File[]) => {
     setFileState(prev => ({
@@ -82,6 +117,7 @@ export function useModelLoader() {
   }, []);
 
   const handleInputUrlChange = useCallback((url: string) => {
+    cancelInFlightLoad();
     setInputUrl(url);
     if (!url.startsWith('[Local File]') && !url.startsWith('[Local Folder]')) {
       setFileState({
@@ -92,9 +128,10 @@ export function useModelLoader() {
         isFolderMode: false,
       });
     }
-  }, []);
+  }, [cancelInFlightLoad]);
 
   const handleLoadSuccess = useCallback((result: ModelLoadResult) => {
+    loadPhaseRef.current = 'idle';
     setLoadResult(result);
     setError(null);
     
@@ -106,6 +143,7 @@ export function useModelLoader() {
   }, [fileState.isLocalFile, fileState.isFolderMode, localFileManager]);
 
   const handleLoadError = useCallback((err: Error) => {
+    loadPhaseRef.current = 'idle';
     setError(err);
     setLoadResult(null);
     
@@ -116,9 +154,11 @@ export function useModelLoader() {
 
   const handleLoadingChange = useCallback((loading: boolean) => {
     setIsLoading(loading);
+    loadPhaseRef.current = loading ? 'viewer' : 'idle';
   }, []);
 
   const handleReset = useCallback(() => {
+    cancelInFlightLoad();
     setInputUrl(DEFAULT_MODEL_URL);
     setModelUrl(DEFAULT_MODEL_URL);
     setError(null);
@@ -131,7 +171,7 @@ export function useModelLoader() {
       isFolderMode: false,
     });
     localFileManager.cleanup();
-  }, [localFileManager]);
+  }, [cancelInFlightLoad, localFileManager]);
 
   return {
     modelUrl,

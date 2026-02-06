@@ -30,7 +30,7 @@ const styles = {
 };
 
 interface DemoViewerProps {
-  modelUrl: string;
+  modelUrl?: string;
   pivotPoint?: { x: number; y: number; z: number };
   zoomLimits?: { min?: number; max?: number };
   grid: GridConfig;
@@ -44,28 +44,28 @@ export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
   ({ modelUrl, pivotPoint, zoomLimits, grid, onLoad, onError, onLoadingChange, onViewerReady }, ref) => {
     return (
       <div style={styles.viewerContainer}>
-        {modelUrl ? (
-          <ThreeViewer
-            ref={ref}
-            modelUrl={modelUrl}
-            {...(pivotPoint && { pivotPoint })}
-            {...(zoomLimits && { zoomLimits })}
-            grid={grid}
-            backgroundColor={0x545454}
-            onLoad={onLoad}
-            onError={onError}
-            onLoadingChange={onLoadingChange}
-            onViewerReady={onViewerReady}
-            style={{ width: '100%', height: '100%' }}
-          />
-        ) : (
+        <ThreeViewer
+          ref={ref}
+          modelUrl={modelUrl || undefined}
+          {...(pivotPoint && { pivotPoint })}
+          {...(zoomLimits && { zoomLimits })}
+          grid={grid}
+          backgroundColor={0x545454}
+          onLoad={onLoad}
+          onError={onError}
+          onLoadingChange={onLoadingChange}
+          onViewerReady={onViewerReady}
+          style={{ width: '100%', height: '100%' }}
+        />
+
+        {!modelUrl ? (
           <div style={styles.overlay}>
             <div style={styles.overlayText}>No model loaded</div>
             <div style={styles.overlayHint}>
               Enter a GLTF/GLB model URL in the sidebar and click "Load Model"
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     );
   }
