@@ -229,7 +229,7 @@ export class CameraPathDesignerPlugin implements Plugin {
 
     const selectedIndex = this._selectedIndex;
     const pulse = 0.5 + 0.5 * Math.sin(this._pulseTime * 6);
-    const selectedScale = 1 + 0.35 * pulse;
+    const selectedScale = 24 + 0.2 * pulse;
 
     for (let i = 0; i < this._pointMeshes.length; i++) {
       const mesh = this._pointMeshes[i];
@@ -252,8 +252,8 @@ export class CameraPathDesignerPlugin implements Plugin {
       this._selectionHalo.visible = true;
       this._selectionHalo.position.copy(selectedMesh.position);
       this._selectionHalo.quaternion.copy(this._context.camera.quaternion);
-      this._selectionHalo.scale.setScalar(1 + 0.65 * pulse);
-      this._selectionHaloMaterial.opacity = 0.25 + 0.45 * pulse;
+      this._selectionHalo.scale.setScalar(20 + 0.6 * pulse);
+      this._selectionHaloMaterial.opacity = 0.55 + 0.25 * pulse;
     }
   }
 
@@ -484,7 +484,7 @@ export class CameraPathDesignerPlugin implements Plugin {
     }
 
     if (!this._selectionHaloGeometry) {
-      this._selectionHaloGeometry = new THREE.RingGeometry(this._pointSize * 2.1, this._pointSize * 3.6, 40);
+      this._selectionHaloGeometry = new THREE.RingGeometry(this._pointSize * 3.0, this._pointSize * 5.2, 40);
     }
     if (!this._selectionHaloMaterial) {
       this._selectionHaloMaterial = new THREE.MeshBasicMaterial({
