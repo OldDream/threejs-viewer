@@ -271,7 +271,7 @@ export function useCameraPathDesigner(
       setIsEditing(d.isEnabled());
       syncFromDesigner();
     } catch {
-      void 0;
+      window.alert('Import failed: invalid JSON');
     }
   }, [shotJson, syncFromDesigner]);
 
