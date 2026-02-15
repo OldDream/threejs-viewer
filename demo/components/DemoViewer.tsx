@@ -46,7 +46,7 @@ export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
       <div style={styles.viewerContainer}>
         <ThreeViewer
           ref={ref}
-          modelUrl={modelUrl || undefined}
+          {...(modelUrl ? { modelUrl } : {})}
           {...(pivotPoint && { pivotPoint })}
           {...(zoomLimits && { zoomLimits })}
           grid={grid}
@@ -54,7 +54,7 @@ export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
           onLoad={onLoad}
           onError={onError}
           onLoadingChange={onLoadingChange}
-          onViewerReady={onViewerReady}
+          {...(onViewerReady ? { onViewerReady } : {})}
           style={{ width: '100%', height: '100%' }}
         />
 

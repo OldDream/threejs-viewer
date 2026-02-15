@@ -1,15 +1,34 @@
 import * as THREE from 'three';
 import { Plugin, PluginContext } from '../core/PluginSystem';
 import { IOrbitControlsPlugin } from './OrbitControlsPlugin';
+import {
+  CameraPathDefaults,
+  CameraPathSegmentConfig,
+  EasingSpec,
+  InterpolationType,
+  SegmentOverride,
+} from './CameraPathTypes';
+
+const MIN_SEGMENT_DURATION = 0.05;
+const DEFAULT_SEGMENT_DURATION = 2.0;
+const DEFAULT_PATH_DEFAULTS: CameraPathDefaults = {
+  interpolation: 'curve',
+  easing: { type: 'smoothstep', strength: 0.6 },
+};
+const INHERIT_INTERPOLATION: SegmentOverride<InterpolationType> = { mode: 'inherit' };
+const INHERIT_EASING: SegmentOverride<EasingSpec> = { mode: 'inherit' };
 
 export type CameraPathDesignerTarget =
   | { type: 'point'; point: THREE.Vector3 }
   | { type: 'object'; object: THREE.Object3D };
 
 export interface CameraPathDesignerShot {
-  duration: number;
+  version?: 2;
+  duration?: number;
   loop: boolean;
-  easeInOut: number;
+  easeInOut?: number;
+  defaults?: CameraPathDefaults;
+  segments?: CameraPathSegmentConfig[];
   pathPoints: Array<{ x: number; y: number; z: number }>;
   target?: { x: number; y: number; z: number } | null;
 }
@@ -34,9 +53,13 @@ export class CameraPathDesignerPlugin implements Plugin {
   private _orbitControlsPlugin: IOrbitControlsPlugin | null = null;
   private _wasOrbitControlsEnabled = true;
 
-  private _duration = 10;
+  private _legacyDuration = 10;
   private _loop = false;
-  private _easeInOut = 0;
+  private _segments: CameraPathSegmentConfig[] = [];
+  private _defaults: CameraPathDefaults = {
+    interpolation: DEFAULT_PATH_DEFAULTS.interpolation,
+    easing: { type: 'smoothstep', strength: 0.6 },
+  };
 
   private _pathPoints: THREE.Vector3[] = [];
   private _target: CameraPathDesignerTarget | null = null;
@@ -266,11 +289,22 @@ export class CameraPathDesignerPlugin implements Plugin {
   }
 
   setDuration(duration: number): void {
-    if (Number.isFinite(duration) && duration > 0) this._duration = duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    this._legacyDuration = duration;
+
+    if (this._segments.length === 0) return;
+    const segmentDuration = Math.max(MIN_SEGMENT_DURATION, duration / this._segments.length);
+    this._segments = this._segments.map((segment) => ({
+      ...segment,
+      duration: segmentDuration,
+    }));
   }
 
   getDuration(): number {
-    return this._duration;
+    if (this._segments.length === 0) {
+      return this._legacyDuration;
+    }
+    return this._segments.reduce((sum, segment) => sum + segment.duration, 0);
   }
 
   setLoop(loop: boolean): void {
@@ -283,11 +317,56 @@ export class CameraPathDesignerPlugin implements Plugin {
 
   setEaseInOut(value: number): void {
     if (!Number.isFinite(value)) return;
-    this._easeInOut = Math.max(0, Math.min(1, value));
+    const strength = Math.max(0, Math.min(1, value));
+    this._defaults = {
+      ...this._defaults,
+      easing: { type: 'smoothstep', strength },
+    };
   }
 
   getEaseInOut(): number {
-    return this._easeInOut;
+    if (this._defaults.easing.type === 'smoothstep') {
+      return this._defaults.easing.strength;
+    }
+    return 0;
+  }
+
+  getDefaults(): CameraPathDefaults {
+    return {
+      interpolation: this._defaults.interpolation,
+      easing: this._cloneEasingSpec(this._defaults.easing),
+    };
+  }
+
+  setDefaults(defaults: CameraPathDefaults): void {
+    this._defaults = this._normalizeDefaults(defaults);
+  }
+
+  getSegments(): CameraPathSegmentConfig[] {
+    return this._segments.map((segment) => this._cloneSegmentConfig(segment));
+  }
+
+  setSegments(segments: CameraPathSegmentConfig[]): void {
+    this._segments = this._normalizeSegments(segments, this._pathPoints.length);
+  }
+
+  setSegmentDuration(index: number, duration: number): void {
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const segment = this._segments[index];
+    if (!segment) return;
+    segment.duration = Math.max(MIN_SEGMENT_DURATION, duration);
+  }
+
+  setSegmentInterpolation(index: number, interpolation: SegmentOverride<InterpolationType>): void {
+    const segment = this._segments[index];
+    if (!segment) return;
+    segment.interpolation = this._normalizeInterpolationOverride(interpolation);
+  }
+
+  setSegmentEasing(index: number, easing: SegmentOverride<EasingSpec>): void {
+    const segment = this._segments[index];
+    if (!segment) return;
+    segment.easing = this._normalizeEasingOverride(easing);
   }
 
   getPathPoints(): THREE.Vector3[] {
@@ -296,6 +375,7 @@ export class CameraPathDesignerPlugin implements Plugin {
 
   setPathPoints(points: THREE.Vector3[]): void {
     this._pathPoints = points.map((p) => p.clone());
+    this._segments = this._normalizeSegments(this._segments, this._pathPoints.length);
     this.setSelectedIndex(null);
     this._ensureHelpers();
     this._syncHelpers();
@@ -303,6 +383,9 @@ export class CameraPathDesignerPlugin implements Plugin {
 
   addPoint(point: THREE.Vector3): void {
     this._pathPoints.push(point.clone());
+    if (this._pathPoints.length >= 2) {
+      this._segments.push(this._createDefaultSegment());
+    }
     this._ensureHelpers();
     this._syncHelpers();
     this.setSelectedIndex(this._pathPoints.length - 1);
@@ -321,6 +404,33 @@ export class CameraPathDesignerPlugin implements Plugin {
     const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this._context.camera.quaternion).normalize();
     const inserted = base.clone().addScaledVector(camRight, this._pointSize * 6);
     this._pathPoints.splice(index + 1, 0, inserted);
+
+    const originalSegment = this._segments[index];
+    if (originalSegment) {
+      const leftDuration = Math.max(MIN_SEGMENT_DURATION, originalSegment.duration * 0.5);
+      const rightDuration = Math.max(MIN_SEGMENT_DURATION, originalSegment.duration - leftDuration);
+      const inheritedInterpolation = this._cloneInterpolationOverride(
+        originalSegment.interpolation ?? INHERIT_INTERPOLATION
+      );
+      const inheritedEasing = this._cloneEasingOverride(originalSegment.easing ?? INHERIT_EASING);
+
+      this._segments.splice(index, 1,
+        {
+          duration: leftDuration,
+          interpolation: inheritedInterpolation,
+          easing: inheritedEasing,
+        },
+        {
+          duration: rightDuration,
+          interpolation: inheritedInterpolation,
+          easing: inheritedEasing,
+        }
+      );
+    } else {
+      this._segments.splice(index, 0, this._createDefaultSegment());
+    }
+
+    this._segments = this._normalizeSegments(this._segments, this._pathPoints.length);
     this._ensureHelpers();
     this._syncHelpers();
     this.setSelectedIndex(index + 1);
@@ -328,7 +438,33 @@ export class CameraPathDesignerPlugin implements Plugin {
 
   removePoint(index: number): void {
     if (index < 0 || index >= this._pathPoints.length) return;
+    const lastPointIndex = this._pathPoints.length - 1;
     this._pathPoints.splice(index, 1);
+
+    if (this._pathPoints.length < 2) {
+      this._segments = [];
+    } else if (index === 0) {
+      this._segments.splice(0, 1);
+    } else if (index === lastPointIndex) {
+      this._segments.splice(index - 1, 1);
+    } else {
+      const leftSegment = this._segments[index - 1] ?? this._createDefaultSegment();
+      const rightSegment = this._segments[index] ?? this._createDefaultSegment();
+
+      const merged: CameraPathSegmentConfig = {
+        duration: Math.max(
+          MIN_SEGMENT_DURATION,
+          Math.max(MIN_SEGMENT_DURATION, leftSegment.duration) + Math.max(MIN_SEGMENT_DURATION, rightSegment.duration)
+        ),
+        interpolation: this._cloneInterpolationOverride(leftSegment.interpolation ?? INHERIT_INTERPOLATION),
+        easing: this._cloneEasingOverride(leftSegment.easing ?? INHERIT_EASING),
+      };
+
+      this._segments.splice(index - 1, 2, merged);
+    }
+
+    this._segments = this._normalizeSegments(this._segments, this._pathPoints.length);
+
     if (this._selectedIndex !== null) {
       if (this._pathPoints.length === 0) this._selectedIndex = null;
       else this._selectedIndex = Math.min(this._selectedIndex, this._pathPoints.length - 1);
@@ -344,6 +480,7 @@ export class CameraPathDesignerPlugin implements Plugin {
 
   clear(): void {
     this._pathPoints = [];
+    this._segments = [];
     this._selectedIndex = null;
     this._ensureHelpers();
     this._syncHelpers();
@@ -396,10 +533,14 @@ export class CameraPathDesignerPlugin implements Plugin {
   }
 
   exportShot(): CameraPathDesignerShot {
+    const totalDuration = this.getDuration();
     return {
-      duration: this._duration,
+      version: 2,
+      duration: totalDuration,
       loop: this._loop,
-      easeInOut: this._easeInOut,
+      easeInOut: this.getEaseInOut(),
+      defaults: this.getDefaults(),
+      segments: this.getSegments(),
       pathPoints: this._pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z })),
       target: this.getTargetPoint()
         ? (() => {
@@ -411,12 +552,161 @@ export class CameraPathDesignerPlugin implements Plugin {
   }
 
   importShot(shot: CameraPathDesignerShot): void {
-    this.setDuration(shot.duration);
+    const points = shot.pathPoints.map((point) => new THREE.Vector3(point.x, point.y, point.z));
+    this.setPathPoints(points);
     this.setLoop(shot.loop);
-    this.setEaseInOut(shot.easeInOut);
-    this.setPathPoints(shot.pathPoints.map((p) => new THREE.Vector3(p.x, p.y, p.z)));
-    if (shot.target) this.setTargetPoint(new THREE.Vector3(shot.target.x, shot.target.y, shot.target.z));
-    else this.clearTarget();
+
+    const segmentCount = Math.max(0, points.length - 1);
+    const hasModernSegments = Array.isArray(shot.segments) && shot.segments.length > 0;
+
+    if (hasModernSegments) {
+      this.setDefaults(shot.defaults ?? DEFAULT_PATH_DEFAULTS);
+      this.setSegments(shot.segments ?? []);
+    } else {
+      const legacyStrength = Number.isFinite(shot.easeInOut) ? Math.max(0, Math.min(1, shot.easeInOut!)) : 0.6;
+      this.setDefaults({
+        interpolation: 'curve',
+        easing: { type: 'smoothstep', strength: legacyStrength },
+      });
+
+      const totalDuration = Number.isFinite(shot.duration) && shot.duration! > 0
+        ? shot.duration!
+        : segmentCount * DEFAULT_SEGMENT_DURATION;
+      this._legacyDuration = totalDuration;
+
+      if (segmentCount > 0) {
+        const eachDuration = Math.max(MIN_SEGMENT_DURATION, totalDuration / segmentCount);
+        const segments: CameraPathSegmentConfig[] = Array.from({ length: segmentCount }, () => ({
+          duration: eachDuration,
+          interpolation: { mode: 'inherit' },
+          easing: { mode: 'inherit' },
+        }));
+        this.setSegments(segments);
+      } else {
+        this._segments = [];
+      }
+    }
+
+    if (shot.target) {
+      this.setTargetPoint(new THREE.Vector3(shot.target.x, shot.target.y, shot.target.z));
+    } else {
+      this.clearTarget();
+    }
+
+    this._syncHelpers();
+  }
+
+  private _normalizeDefaults(defaults: CameraPathDefaults): CameraPathDefaults {
+    const interpolation: InterpolationType = defaults.interpolation === 'linear' ? 'linear' : 'curve';
+    const easing = this._normalizeEasingSpec(defaults.easing);
+    return {
+      interpolation,
+      easing,
+    };
+  }
+
+  private _createDefaultSegment(): CameraPathSegmentConfig {
+    return {
+      duration: DEFAULT_SEGMENT_DURATION,
+      interpolation: { mode: 'inherit' },
+      easing: { mode: 'inherit' },
+    };
+  }
+
+  private _normalizeSegments(segments: CameraPathSegmentConfig[], pointCount: number): CameraPathSegmentConfig[] {
+    const requiredCount = Math.max(0, pointCount - 1);
+    const normalized: CameraPathSegmentConfig[] = [];
+
+    for (let index = 0; index < requiredCount; index++) {
+      const source = segments[index];
+      if (!source) {
+        normalized.push(this._createDefaultSegment());
+        continue;
+      }
+
+      const duration = Number.isFinite(source.duration) && source.duration > 0
+        ? Math.max(MIN_SEGMENT_DURATION, source.duration)
+        : DEFAULT_SEGMENT_DURATION;
+      const interpolation = this._normalizeInterpolationOverride(source.interpolation ?? INHERIT_INTERPOLATION);
+      const easing = this._normalizeEasingOverride(source.easing ?? INHERIT_EASING);
+
+      normalized.push({
+        duration,
+        interpolation,
+        easing,
+      });
+    }
+
+    return normalized;
+  }
+
+  private _normalizeInterpolationOverride(
+    override: SegmentOverride<InterpolationType>
+  ): SegmentOverride<InterpolationType> {
+    if (override.mode === 'override' && (override.value === 'linear' || override.value === 'curve')) {
+      return { mode: 'override', value: override.value };
+    }
+    return { mode: 'inherit' };
+  }
+
+  private _normalizeEasingOverride(override: SegmentOverride<EasingSpec>): SegmentOverride<EasingSpec> {
+    if (override.mode === 'override') {
+      return {
+        mode: 'override',
+        value: this._normalizeEasingSpec(override.value),
+      };
+    }
+    return { mode: 'inherit' };
+  }
+
+  private _normalizeEasingSpec(easing: EasingSpec): EasingSpec {
+    if (easing.type === 'linear') {
+      return { type: 'linear' };
+    }
+    return {
+      type: 'smoothstep',
+      strength: Math.max(0, Math.min(1, easing.strength)),
+    };
+  }
+
+  private _cloneSegmentConfig(segment: CameraPathSegmentConfig): CameraPathSegmentConfig {
+    return {
+      duration: segment.duration,
+      interpolation: this._cloneInterpolationOverride(segment.interpolation ?? INHERIT_INTERPOLATION),
+      easing: this._cloneEasingOverride(segment.easing ?? INHERIT_EASING),
+    };
+  }
+
+  private _cloneInterpolationOverride(
+    override: SegmentOverride<InterpolationType>
+  ): SegmentOverride<InterpolationType> {
+    if (override.mode === 'override') {
+      return {
+        mode: 'override',
+        value: override.value,
+      };
+    }
+    return { mode: 'inherit' };
+  }
+
+  private _cloneEasingOverride(override: SegmentOverride<EasingSpec>): SegmentOverride<EasingSpec> {
+    if (override.mode === 'override') {
+      return {
+        mode: 'override',
+        value: this._cloneEasingSpec(override.value),
+      };
+    }
+    return { mode: 'inherit' };
+  }
+
+  private _cloneEasingSpec(easing: EasingSpec): EasingSpec {
+    if (easing.type === 'linear') {
+      return { type: 'linear' };
+    }
+    return {
+      type: 'smoothstep',
+      strength: easing.strength,
+    };
   }
 
   dispose(): void {

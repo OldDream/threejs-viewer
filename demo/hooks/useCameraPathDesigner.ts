@@ -1,14 +1,37 @@
-import { useCallback, useEffect, useMemo, useRef, useState, RefObject } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
   CameraPathAnimationPlugin,
+  CameraPathDefaults,
   CameraPathDesignerPlugin,
   CameraPathDesignerShot,
+  CameraPathSegmentConfig,
+  EasingSpec,
   IOrbitControlsPlugin,
+  InterpolationType,
   ModelLoadResult,
+  SegmentOverride,
   ThreeViewerHandle,
   ViewerCore,
 } from '../../src';
+import { useDockablePanelState } from './useDockablePanelState';
+
+const DEFAULT_DEFAULTS: CameraPathDefaults = {
+  interpolation: 'curve',
+  easing: { type: 'smoothstep', strength: 0.6 },
+};
+
+const MIN_SEGMENT_DURATION = 0.05;
+
+type DesignerSnapshot = {
+  pointsKey: string;
+  segmentsKey: string;
+  defaultsKey: string;
+  selectedIndex: number | null;
+  isPickTargetArmed: boolean;
+  isEditing: boolean;
+  loop: boolean;
+};
 
 export function useCameraPathDesigner(
   viewerRef: RefObject<ThreeViewerHandle | null>,
@@ -16,81 +39,135 @@ export function useCameraPathDesigner(
 ) {
   const designerRef = useRef<CameraPathDesignerPlugin | null>(null);
   const animationRef = useRef<CameraPathAnimationPlugin | null>(null);
-  const lastSnapshotRef = useRef<{
-    pointsKey: string;
-    selectedIndex: number | null;
-    isPickTargetArmed: boolean;
-    isEditing: boolean;
-  } | null>(null);
+  const lastSnapshotRef = useRef<DesignerSnapshot | null>(null);
+  const { panelState, ...panelActions } = useDockablePanelState();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  const [duration, setDuration] = useState<number>(12);
-  const [loop, setLoop] = useState<boolean>(false);
-  const [easeInOut, setEaseInOut] = useState<number>(0.6);
+  const [loop, setLoopState] = useState(false);
+  const [duration, setDurationState] = useState(10);
 
   const [points, setPoints] = useState<Array<{ x: number; y: number; z: number }>>([]);
-  const [pointCount, setPointCount] = useState<number>(0);
+  const [segments, setSegmentsState] = useState<CameraPathSegmentConfig[]>([]);
+  const [defaults, setDefaultsState] = useState<CameraPathDefaults>(DEFAULT_DEFAULTS);
+  const [pointCount, setPointCount] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isPickTargetArmed, setIsPickTargetArmed] = useState<boolean>(false);
-
-  const [shotJson, setShotJson] = useState<string>('');
+  const [selectedSegmentIndex, setSelectedSegmentIndex] = useState<number | null>(null);
+  const [isPickTargetArmed, setIsPickTargetArmed] = useState(false);
+  const [shotJson, setShotJson] = useState('');
 
   const defaultTarget = useMemo(() => {
     return loadResult ? loadResult.center.clone() : new THREE.Vector3(0, 0, 0);
   }, [loadResult]);
 
-  /**
-   * 生成路径点的轻量签名，用于避免重复 setState 造成的频繁重渲染。
-   * - 这里对坐标做 0.0001 的量化（*10000 取整），足够支撑 UI 展示与列表更新。
-   */
   const buildPointsKey = useCallback((pathPoints: THREE.Vector3[]) => {
     const scale = 10000;
     let key = `${pathPoints.length}|`;
-    for (const p of pathPoints) {
-      key += `${Math.round(p.x * scale)},${Math.round(p.y * scale)},${Math.round(p.z * scale)};`;
+    for (const point of pathPoints) {
+      key += `${Math.round(point.x * scale)},${Math.round(point.y * scale)},${Math.round(point.z * scale)};`;
     }
     return key;
   }, []);
 
+  const buildSegmentsKey = useCallback((segmentList: CameraPathSegmentConfig[]) => {
+    const scale = 10000;
+    return segmentList
+      .map((segment) => {
+        const interpolation = segment.interpolation?.mode === 'override'
+          ? `o:${segment.interpolation.value}`
+          : 'i';
+        const easing = segment.easing?.mode === 'override'
+          ? segment.easing.value.type === 'linear'
+            ? 'o:linear'
+            : `o:smooth:${Math.round(segment.easing.value.strength * scale)}`
+          : 'i';
+        return `${Math.round(segment.duration * scale)}:${interpolation}:${easing}`;
+      })
+      .join('|');
+  }, []);
+
+  const buildDefaultsKey = useCallback((nextDefaults: CameraPathDefaults) => {
+    const interpolation = nextDefaults.interpolation;
+    const easing = nextDefaults.easing.type === 'linear'
+      ? 'linear'
+      : `smooth:${Math.round(nextDefaults.easing.strength * 10000)}`;
+    return `${interpolation}|${easing}`;
+  }, []);
+
   const syncFromDesigner = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    const pathPoints = d.getPathPoints();
-    const nextSnapshot = {
+    const designer = designerRef.current;
+    if (!designer) return;
+
+    const pathPoints = designer.getPathPoints();
+    const nextSegments = designer.getSegments();
+    const nextDefaults = designer.getDefaults();
+    const nextDuration = nextSegments.reduce((sum, segment) => sum + segment.duration, 0);
+    const nextSelectedIndex = designer.getSelectedIndex();
+    const derivedSegmentFromSelectedPoint = nextSegments.length === 0 || nextSelectedIndex === null
+      ? null
+      : Math.min(Math.max(0, nextSelectedIndex), nextSegments.length - 1);
+
+    const nextSnapshot: DesignerSnapshot = {
       pointsKey: buildPointsKey(pathPoints),
-      selectedIndex: d.getSelectedIndex(),
-      isPickTargetArmed: d.isPickTargetArmed(),
-      isEditing: d.isEnabled(),
+      segmentsKey: buildSegmentsKey(nextSegments),
+      defaultsKey: buildDefaultsKey(nextDefaults),
+      selectedIndex: nextSelectedIndex,
+      isPickTargetArmed: designer.isPickTargetArmed(),
+      isEditing: designer.isEnabled(),
+      loop: designer.getLoop(),
     };
 
-    const prev = lastSnapshotRef.current;
+    const prevSnapshot = lastSnapshotRef.current;
     if (
-      prev &&
-      prev.pointsKey === nextSnapshot.pointsKey &&
-      prev.selectedIndex === nextSnapshot.selectedIndex &&
-      prev.isPickTargetArmed === nextSnapshot.isPickTargetArmed &&
-      prev.isEditing === nextSnapshot.isEditing
+      prevSnapshot &&
+      prevSnapshot.pointsKey === nextSnapshot.pointsKey &&
+      prevSnapshot.segmentsKey === nextSnapshot.segmentsKey &&
+      prevSnapshot.defaultsKey === nextSnapshot.defaultsKey &&
+      prevSnapshot.selectedIndex === nextSnapshot.selectedIndex &&
+      prevSnapshot.isPickTargetArmed === nextSnapshot.isPickTargetArmed &&
+      prevSnapshot.isEditing === nextSnapshot.isEditing &&
+      prevSnapshot.loop === nextSnapshot.loop
     ) {
       return;
     }
     lastSnapshotRef.current = nextSnapshot;
 
-    if (!prev || prev.pointsKey !== nextSnapshot.pointsKey) {
-      setPoints(pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z })));
+    if (!prevSnapshot || prevSnapshot.pointsKey !== nextSnapshot.pointsKey) {
+      setPoints(pathPoints.map((point) => ({ x: point.x, y: point.y, z: point.z })));
       setPointCount(pathPoints.length);
     }
-    if (!prev || prev.selectedIndex !== nextSnapshot.selectedIndex) {
-      setSelectedIndex(nextSnapshot.selectedIndex);
+    if (!prevSnapshot || prevSnapshot.segmentsKey !== nextSnapshot.segmentsKey) {
+      setSegmentsState(nextSegments);
+      setDurationState(nextDuration);
+      setSelectedSegmentIndex((current) => {
+        if (nextSegments.length === 0) return null;
+        if (derivedSegmentFromSelectedPoint !== null) return derivedSegmentFromSelectedPoint;
+        if (current === null) return 0;
+        return Math.min(current, nextSegments.length - 1);
+      });
     }
-    if (!prev || prev.isPickTargetArmed !== nextSnapshot.isPickTargetArmed) {
+    if (!prevSnapshot || prevSnapshot.defaultsKey !== nextSnapshot.defaultsKey) {
+      setDefaultsState(nextDefaults);
+    }
+    if (!prevSnapshot || prevSnapshot.selectedIndex !== nextSnapshot.selectedIndex) {
+      setSelectedIndex(nextSelectedIndex);
+      setSelectedSegmentIndex((current) => {
+        if (nextSegments.length === 0) return null;
+        if (derivedSegmentFromSelectedPoint !== null) return derivedSegmentFromSelectedPoint;
+        if (current === null) return 0;
+        return Math.min(current, nextSegments.length - 1);
+      });
+    }
+    if (!prevSnapshot || prevSnapshot.isPickTargetArmed !== nextSnapshot.isPickTargetArmed) {
       setIsPickTargetArmed(nextSnapshot.isPickTargetArmed);
     }
-    if (!prev || prev.isEditing !== nextSnapshot.isEditing) {
+    if (!prevSnapshot || prevSnapshot.isEditing !== nextSnapshot.isEditing) {
       setIsEditing(nextSnapshot.isEditing);
     }
-  }, [buildPointsKey]);
+    if (!prevSnapshot || prevSnapshot.loop !== nextSnapshot.loop) {
+      setLoopState(nextSnapshot.loop);
+    }
+  }, [buildDefaultsKey, buildPointsKey, buildSegmentsKey]);
 
   const onViewerReady = useCallback((viewerCore: ViewerCore) => {
     const existingDesigner = viewerCore.plugins.get<CameraPathDesignerPlugin>('CameraPathDesignerPlugin');
@@ -100,91 +177,146 @@ export function useCameraPathDesigner(
     }
     designerRef.current = designer;
 
-    const existingAnim = viewerCore.plugins.get<CameraPathAnimationPlugin>('CameraPathAnimationPlugin');
-    const anim = existingAnim ?? new CameraPathAnimationPlugin();
-    if (!existingAnim && !viewerCore.plugins.has(anim.name)) {
-      viewerCore.plugins.register(anim);
+    const existingAnimation = viewerCore.plugins.get<CameraPathAnimationPlugin>('CameraPathAnimationPlugin');
+    const animation = existingAnimation ?? new CameraPathAnimationPlugin();
+    if (!existingAnimation && !viewerCore.plugins.has(animation.name)) {
+      viewerCore.plugins.register(animation);
     }
-    animationRef.current = anim;
+    animationRef.current = animation;
 
-    const orbitPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
-    if (orbitPlugin) {
-      designer.setOrbitControlsPlugin(orbitPlugin);
-      anim.setOrbitControlsPlugin(orbitPlugin);
+    const orbitControlsPlugin = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin');
+    if (orbitControlsPlugin) {
+      designer.setOrbitControlsPlugin(orbitControlsPlugin);
+      animation.setOrbitControlsPlugin(orbitControlsPlugin);
     }
 
-    designer.setDuration(duration);
-    designer.setLoop(loop);
-    designer.setEaseInOut(easeInOut);
     if (!designer.getTargetPoint()) {
       designer.setTargetPoint(defaultTarget);
     }
 
-    // ViewerCore 变化时清理一次快照，避免拿旧快照误判“无变化”
     lastSnapshotRef.current = null;
     syncFromDesigner();
-  }, [defaultTarget, duration, easeInOut, loop, syncFromDesigner]);
+  }, [defaultTarget, syncFromDesigner]);
 
   useEffect(() => {
     return () => {
       const viewerCore = viewerRef.current?.getViewerCore();
       const designer = designerRef.current;
-      const anim = animationRef.current;
+      const animation = animationRef.current;
       if (viewerCore && designer) viewerCore.plugins.unregister(designer.name);
-      if (viewerCore && anim) viewerCore.plugins.unregister(anim.name);
+      if (viewerCore && animation) viewerCore.plugins.unregister(animation.name);
       designerRef.current = null;
       animationRef.current = null;
     };
   }, [viewerRef]);
 
   useEffect(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.setDuration(duration);
-  }, [duration]);
-
-  useEffect(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.setLoop(loop);
-  }, [loop]);
-
-  useEffect(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.setEaseInOut(easeInOut);
-  }, [easeInOut]);
-
-  useEffect(() => {
-    const d = designerRef.current;
-    if (!d) return;
-
-    // 仅在需要反映“插件内部事件”时轮询同步：
-    // - 编辑模式下拖拽点位会在插件内部更新
-    // - “Pick Once” 需要反映 armed 状态的自动取消
+    const designer = designerRef.current;
+    if (!designer) return;
     if (!isEditing && !isPickTargetArmed) return;
-
-    const id = window.setInterval(syncFromDesigner, 150);
-
+    const timerId = window.setInterval(syncFromDesigner, 120);
     return () => {
-      window.clearInterval(id);
+      window.clearInterval(timerId);
     };
   }, [isEditing, isPickTargetArmed, syncFromDesigner]);
 
+  const setLoop = useCallback((nextLoop: boolean) => {
+    const designer = designerRef.current;
+    if (!designer) return;
+    designer.setLoop(nextLoop);
+    syncFromDesigner();
+  }, [syncFromDesigner]);
+
+  const setDuration = useCallback((nextDuration: number) => {
+    const designer = designerRef.current;
+    if (!designer) return;
+    designer.setDuration(nextDuration);
+    syncFromDesigner();
+  }, [syncFromDesigner]);
+
+  const setDefaultInterpolation = useCallback((interpolation: InterpolationType) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setDefaults({
+      ...designer.getDefaults(),
+      interpolation,
+    });
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setDefaultEasing = useCallback((easing: EasingSpec) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setDefaults({
+      ...designer.getDefaults(),
+      easing,
+    });
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setSegmentDuration = useCallback((index: number, nextDuration: number) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setSegmentDuration(index, nextDuration);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setAdjacentSegmentDurations = useCallback((boundaryIndex: number, leftDuration: number, rightDuration: number) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+
+    const current = designer.getSegments();
+    const left = current[boundaryIndex];
+    const right = current[boundaryIndex + 1];
+    if (!left || !right) return;
+
+    left.duration = Math.max(MIN_SEGMENT_DURATION, leftDuration);
+    right.duration = Math.max(MIN_SEGMENT_DURATION, rightDuration);
+    designer.setSegments(current);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setSegmentInterpolation = useCallback((index: number, override: SegmentOverride<InterpolationType>) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setSegmentInterpolation(index, override);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setSegmentEasing = useCallback((index: number, override: SegmentOverride<EasingSpec>) => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setSegmentEasing(index, override);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const applyDefaultsToAllSegments = useCallback(() => {
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    const nextSegments = designer.getSegments().map((segment) => ({
+      ...segment,
+      interpolation: { mode: 'inherit' as const },
+      easing: { mode: 'inherit' as const },
+    }));
+    designer.setSegments(nextSegments);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
+
+  const setSelectedSegment = useCallback((index: number | null) => {
+    setSelectedSegmentIndex(index);
+  }, []);
+
   const enableEditing = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    if (isPlaying) return;
-    d.enable();
-    setIsEditing(true);
+    const designer = designerRef.current;
+    if (!designer || isPlaying) return;
+    designer.enable();
     syncFromDesigner();
   }, [isPlaying, syncFromDesigner]);
 
   const disableEditing = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.disable();
-    setIsEditing(false);
+    const designer = designerRef.current;
+    if (!designer) return;
+    designer.disable();
     syncFromDesigner();
   }, [syncFromDesigner]);
 
@@ -194,132 +326,114 @@ export function useCameraPathDesigner(
   }, [disableEditing, enableEditing, isEditing]);
 
   const addPoint = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.addPointFromCamera();
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.addPointFromCamera();
     syncFromDesigner();
-  }, [syncFromDesigner]);
+  }, [isPlaying, syncFromDesigner]);
 
   const insertPoint = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    const idx = d.getSelectedIndex();
-    if (idx === null) return;
-    d.insertPointAfter(idx);
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    const index = designer.getSelectedIndex();
+    if (index === null) return;
+    designer.insertPointAfter(index);
     syncFromDesigner();
-  }, [syncFromDesigner]);
+  }, [isPlaying, syncFromDesigner]);
 
   const deletePoint = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.removeSelectedPoint();
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.removeSelectedPoint();
     syncFromDesigner();
-  }, [syncFromDesigner]);
+  }, [isPlaying, syncFromDesigner]);
 
-  const selectPoint = useCallback(
-    (index: number) => {
-      const d = designerRef.current;
-      if (!d) return;
-      if (isPlaying) return;
-      if (!d.isEnabled()) d.enable();
-      d.setSelectedIndex(index);
-      syncFromDesigner();
-    },
-    [isPlaying, syncFromDesigner]
-  );
+  const selectPoint = useCallback((index: number) => {
+    const designer = designerRef.current;
+    if (!designer || isPlaying) return;
+    if (!designer.isEnabled()) return;
+    designer.setSelectedIndex(index);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
 
-  const insertPointAfterAt = useCallback(
-    (index: number) => {
-      const d = designerRef.current;
-      if (!d) return;
-      if (isPlaying) return;
-      if (!d.isEnabled()) d.enable();
-      d.insertPointAfter(index);
-      syncFromDesigner();
-    },
-    [isPlaying, syncFromDesigner]
-  );
+  const insertPointAfterAt = useCallback((index: number) => {
+    const designer = designerRef.current;
+    if (!designer || isPlaying || !designer.isEnabled()) return;
+    designer.insertPointAfter(index);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
 
-  const deletePointAt = useCallback(
-    (index: number) => {
-      const d = designerRef.current;
-      if (!d) return;
-      if (isPlaying) return;
-      if (!d.isEnabled()) d.enable();
-      d.removePoint(index);
-      syncFromDesigner();
-    },
-    [isPlaying, syncFromDesigner]
-  );
+  const deletePointAt = useCallback((index: number) => {
+    const designer = designerRef.current;
+    if (!designer || isPlaying || !designer.isEnabled()) return;
+    designer.removePoint(index);
+    syncFromDesigner();
+  }, [isPlaying, syncFromDesigner]);
 
   const clearPath = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.clear();
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.clear();
     syncFromDesigner();
-  }, [syncFromDesigner]);
+  }, [isPlaying, syncFromDesigner]);
 
   const setTargetToCenter = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.setTargetPoint(defaultTarget);
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.setTargetPoint(defaultTarget);
     syncFromDesigner();
-  }, [defaultTarget, syncFromDesigner]);
+  }, [defaultTarget, isPlaying, syncFromDesigner]);
 
   const pickTargetOnce = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    d.armPickTargetOnce();
+    const designer = designerRef.current;
+    if (!designer || !designer.isEnabled() || isPlaying) return;
+    designer.armPickTargetOnce();
     syncFromDesigner();
-  }, [syncFromDesigner]);
+  }, [isPlaying, syncFromDesigner]);
 
   const play = useCallback(() => {
-    const d = designerRef.current;
-    const anim = animationRef.current;
-    if (!d || !anim) return;
+    const designer = designerRef.current;
+    const animation = animationRef.current;
+    if (!designer || !animation) return;
 
-    const points = d.getPathPoints();
-    if (points.length < 2) return;
+    const pathPoints = designer.getPathPoints();
+    const pathSegments = designer.getSegments();
+    if (pathPoints.length < 2 || pathSegments.length < 1) return;
 
     disableEditing();
-
-    const target = d.getTargetPoint() ?? defaultTarget;
-    anim.configure({
-      pathPoints: points,
-      duration,
-      loop,
-      easeInOut,
+    const target = designer.getTargetPoint() ?? defaultTarget;
+    animation.configure({
+      pathPoints,
+      segments: pathSegments,
+      defaults: designer.getDefaults(),
+      loop: designer.getLoop(),
       target,
       autoPlay: true,
     });
 
     setIsPlaying(true);
-  }, [defaultTarget, disableEditing, duration, easeInOut, loop]);
+  }, [defaultTarget, disableEditing]);
 
   const stop = useCallback(() => {
-    const anim = animationRef.current;
-    if (!anim) return;
-    anim.stop();
+    const animation = animationRef.current;
+    if (!animation) return;
+    animation.stop();
     setIsPlaying(false);
   }, []);
 
   const exportShot = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
-    const shot = d.exportShot();
+    const designer = designerRef.current;
+    if (!designer) return;
+    const shot = designer.exportShot();
     setShotJson(JSON.stringify(shot, null, 2));
   }, []);
 
   const importShot = useCallback(() => {
-    const d = designerRef.current;
-    if (!d) return;
+    const designer = designerRef.current;
+    if (!designer) return;
     try {
       const parsed = JSON.parse(shotJson) as CameraPathDesignerShot;
-      d.importShot(parsed);
-      setDuration(parsed.duration);
-      setLoop(parsed.loop);
-      setEaseInOut(parsed.easeInOut);
-      setIsEditing(d.isEnabled());
+      designer.importShot(parsed);
       syncFromDesigner();
     } catch {
       window.alert('Import failed: invalid JSON');
@@ -329,18 +443,13 @@ export function useCameraPathDesigner(
   const reset = useCallback(() => {
     stop();
     disableEditing();
-    setDuration(12);
-    setLoop(false);
-    setEaseInOut(0.6);
     setShotJson('');
-    const d = designerRef.current;
-    if (d) {
-      d.setDuration(12);
-      d.setLoop(false);
-      d.setEaseInOut(0.6);
-      d.clear();
-      d.setTargetPoint(defaultTarget);
-    }
+    const designer = designerRef.current;
+    if (!designer) return;
+    designer.clear();
+    designer.setDefaults(DEFAULT_DEFAULTS);
+    designer.setLoop(false);
+    designer.setTargetPoint(defaultTarget);
     syncFromDesigner();
   }, [defaultTarget, disableEditing, stop, syncFromDesigner]);
 
@@ -350,16 +459,27 @@ export function useCameraPathDesigner(
     isPlaying,
     duration,
     loop,
-    easeInOut,
     points,
+    segments,
+    defaults,
     pointCount,
     selectedIndex,
+    selectedSegmentIndex,
     isPickTargetArmed,
     shotJson,
-    setDuration,
+    panelState,
+    ...panelActions,
     setLoop,
-    setEaseInOut,
+    setDuration,
     setShotJson,
+    setDefaultInterpolation,
+    setDefaultEasing,
+    setSegmentDuration,
+    setAdjacentSegmentDurations,
+    setSegmentInterpolation,
+    setSegmentEasing,
+    applyDefaultsToAllSegments,
+    setSelectedSegment,
     toggleEditing,
     addPoint,
     insertPoint,

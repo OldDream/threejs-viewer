@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import App from '../../demo/App';
+import App from '../../demo/App.refactored';
 import { LocalFileManager } from '../utils/LocalFileManager';
 
 describe('Local File Loader - End-to-End Integration', () => {

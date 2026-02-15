@@ -18,6 +18,8 @@ import { CameraAnimationControl } from './components/controls/CameraAnimationCon
 import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
 import { StatusDisplay } from './components/controls/StatusDisplay';
 import { ControlsInstructions } from './components/controls/ControlsInstructions';
+import { CameraPathEditorPanel } from './components/panels/CameraPathEditorPanel';
+import { CameraPathEditorFloatingWindow } from './components/panels/CameraPathEditorFloatingWindow';
 
 // Hooks
 import { useModelLoader } from './hooks/useModelLoader';
@@ -29,7 +31,7 @@ import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { useCameraPathDesigner } from './hooks/useCameraPathDesigner';
 
 // Styles
-import { styles as themeStyles, colors } from './styles/theme';
+import { styles as themeStyles, colors, typography } from './styles/theme';
 
 // CSS keyframes for spinner animation
 const spinnerKeyframes = `
@@ -38,6 +40,39 @@ const spinnerKeyframes = `
     to { transform: rotate(360deg); }
   }
 `;
+
+const styles = {
+  viewerColumn: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  } as React.CSSProperties,
+
+  viewerArea: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+  } as React.CSSProperties,
+
+  dockWrapper: {
+    position: 'relative',
+    borderTop: `1px solid ${colors.border.primary}`,
+    backgroundColor: colors.background.primary,
+  } as React.CSSProperties,
+
+  dockResizeHandle: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '6px',
+    cursor: 'ns-resize',
+    zIndex: 10,
+    background: 'transparent',
+  } as React.CSSProperties,
+};
 
 /**
  * Demo Application for ThreeViewer Component
@@ -50,7 +85,7 @@ const spinnerKeyframes = `
  * 
  * Requirement 6.3: THE project SHALL include a demo application that showcases the Viewer component
  */
-const App: React.FC = () => {
+	const App: React.FC = () => {
   const viewerRef = useRef<ThreeViewerHandle>(null);
   const viewerCoreRef = useRef<ViewerCore | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraFeatureMode>('animation');
@@ -59,6 +94,8 @@ const App: React.FC = () => {
   const pendingPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
   const lastSyncedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
   const lockedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
+  const dockResizeStateRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const dockResizeCleanupRef = useRef<(() => void) | null>(null);
 
   // Business logic hooks
   const modelLoader = useModelLoader();
@@ -68,7 +105,67 @@ const App: React.FC = () => {
   const cameraAnimation = useCameraAnimation(viewerRef, modelLoader.loadResult);
   const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
   const isCameraLocked = cameraAnimation.isAnimating || cameraPathDesigner.isPlaying;
-  const cameraMovement = useCameraMovement(viewerRef, isCameraLocked);
+	  const cameraMovement = useCameraMovement(viewerRef, isCameraLocked);
+
+	  const compactHeaderButton: React.CSSProperties = {
+	    ...themeStyles.buttonSecondary,
+	    width: 'auto',
+	    padding: '6px 10px',
+	    fontSize: typography.fontSize.xs,
+	    borderRadius: '6px',
+	    whiteSpace: 'nowrap',
+	  };
+
+  const handleDockResizeStart = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!cameraPathDesigner.panelState.isDocked) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    dockResizeCleanupRef.current?.();
+    dockResizeCleanupRef.current = null;
+
+    dockResizeStateRef.current = {
+      startY: event.clientY,
+      startHeight: cameraPathDesigner.panelState.dockHeight,
+    };
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const state = dockResizeStateRef.current;
+      if (!state) return;
+      const deltaY = moveEvent.clientY - state.startY;
+      cameraPathDesigner.setDockHeight(state.startHeight - deltaY);
+    };
+
+    const onMouseUp = () => {
+      dockResizeCleanupRef.current?.();
+    };
+
+    dockResizeCleanupRef.current = () => {
+      dockResizeStateRef.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      dockResizeCleanupRef.current = null;
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }, [cameraPathDesigner]);
+
+  useEffect(() => {
+    const shouldAllowDockResize = cameraMode === 'designer'
+      && cameraPathDesigner.panelState.isOpen
+      && cameraPathDesigner.panelState.isDocked;
+    if (!shouldAllowDockResize) {
+      dockResizeCleanupRef.current?.();
+    }
+  }, [cameraMode, cameraPathDesigner.panelState.isDocked, cameraPathDesigner.panelState.isOpen]);
+
+  useEffect(() => {
+    return () => {
+      dockResizeCleanupRef.current?.();
+      dockResizeCleanupRef.current = null;
+    };
+  }, []);
 
   const handleChangeCameraMode = useCallback((mode: CameraFeatureMode) => {
     if (mode === cameraMode) return;
@@ -275,33 +372,18 @@ const App: React.FC = () => {
             <CameraPathDesignerControl
               isEditing={cameraPathDesigner.isEditing}
               isPlaying={cameraPathDesigner.isPlaying}
-              duration={cameraPathDesigner.duration}
               loop={cameraPathDesigner.loop}
-              easeInOut={cameraPathDesigner.easeInOut}
-              points={cameraPathDesigner.points}
+              panelOpen={cameraPathDesigner.panelState.isOpen}
               pointCount={cameraPathDesigner.pointCount}
-              selectedIndex={cameraPathDesigner.selectedIndex}
               isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
-              shotJson={cameraPathDesigner.shotJson}
+              onTogglePanel={cameraPathDesigner.toggleOpen}
               onToggleEditing={cameraPathDesigner.toggleEditing}
-              onAddPoint={cameraPathDesigner.addPoint}
-              onInsertPoint={cameraPathDesigner.insertPoint}
-              onDeletePoint={cameraPathDesigner.deletePoint}
-              onSelectPoint={cameraPathDesigner.selectPoint}
-              onInsertPointAfterAt={cameraPathDesigner.insertPointAfterAt}
-              onDeletePointAt={cameraPathDesigner.deletePointAt}
-              onClearPath={cameraPathDesigner.clearPath}
-              onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
-              onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
               onPlay={cameraPathDesigner.play}
               onStop={cameraPathDesigner.stop}
-              onExportShot={cameraPathDesigner.exportShot}
-              onImportShot={cameraPathDesigner.importShot}
-              onReset={cameraPathDesigner.reset}
-              onChangeDuration={cameraPathDesigner.setDuration}
-              onChangeLoop={cameraPathDesigner.setLoop}
-              onChangeEaseInOut={cameraPathDesigner.setEaseInOut}
-              onChangeShotJson={cameraPathDesigner.setShotJson}
+              onToggleLoop={cameraPathDesigner.setLoop}
+              onAddPoint={cameraPathDesigner.addPoint}
+              onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+              onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
             />
           )}
 
@@ -325,18 +407,128 @@ const App: React.FC = () => {
           <ControlsInstructions isCSMode={cameraMovement.isCSMode} />
         </DemoSidebar>
 
-        <DemoViewer
-          ref={viewerRef}
-          modelUrl={modelLoader.modelUrl}
-          pivotPoint={pivotControl.pivotPoint}
-          zoomLimits={zoomControl.zoomLimits}
-          grid={gridControl.gridConfig}
-          onLoad={modelLoader.handleLoadSuccess}
-          onError={modelLoader.handleLoadError}
-          onLoadingChange={modelLoader.handleLoadingChange}
-          onViewerReady={handleViewerReady}
-        />
+        <div style={styles.viewerColumn}>
+          <div style={styles.viewerArea}>
+            <DemoViewer
+              ref={viewerRef}
+              {...(modelLoader.modelUrl ? { modelUrl: modelLoader.modelUrl } : {})}
+              {...(pivotControl.pivotPoint ? { pivotPoint: pivotControl.pivotPoint } : {})}
+              {...(zoomControl.zoomLimits ? { zoomLimits: zoomControl.zoomLimits } : {})}
+              grid={gridControl.gridConfig}
+              onLoad={modelLoader.handleLoadSuccess}
+              onError={modelLoader.handleLoadError}
+              onLoadingChange={modelLoader.handleLoadingChange}
+              onViewerReady={handleViewerReady}
+            />
+          </div>
+
+          {cameraMode === 'designer' && cameraPathDesigner.panelState.isOpen && cameraPathDesigner.panelState.isDocked ? (
+            <div
+              style={{
+                ...styles.dockWrapper,
+                height: `${cameraPathDesigner.panelState.dockHeight}px`,
+              }}
+            >
+              <div style={styles.dockResizeHandle} onMouseDown={handleDockResizeStart} />
+              <CameraPathEditorPanel
+                isEditing={cameraPathDesigner.isEditing}
+                isPlaying={cameraPathDesigner.isPlaying}
+                loop={cameraPathDesigner.loop}
+                points={cameraPathDesigner.points}
+                pointCount={cameraPathDesigner.pointCount}
+                selectedIndex={cameraPathDesigner.selectedIndex}
+                isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
+                segments={cameraPathDesigner.segments}
+                defaults={cameraPathDesigner.defaults}
+                selectedSegmentIndex={cameraPathDesigner.selectedSegmentIndex}
+                shotJson={cameraPathDesigner.shotJson}
+                timelineZoom={cameraPathDesigner.panelState.timelineZoom}
+                timelineSnap={cameraPathDesigner.panelState.timelineSnap}
+                onToggleEditing={cameraPathDesigner.toggleEditing}
+                onPlay={cameraPathDesigner.play}
+                onStop={cameraPathDesigner.stop}
+                onToggleLoop={cameraPathDesigner.setLoop}
+                onAddPoint={cameraPathDesigner.addPoint}
+                onInsertPoint={cameraPathDesigner.insertPoint}
+                onDeletePoint={cameraPathDesigner.deletePoint}
+                onClearPath={cameraPathDesigner.clearPath}
+                onSelectPoint={cameraPathDesigner.selectPoint}
+                onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+                onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
+                onSelectSegment={(index) => cameraPathDesigner.setSelectedSegment(index)}
+                onSetDefaultInterpolation={cameraPathDesigner.setDefaultInterpolation}
+                onSetDefaultEasing={cameraPathDesigner.setDefaultEasing}
+                onApplyDefaultsToAllSegments={cameraPathDesigner.applyDefaultsToAllSegments}
+                onSetSegmentDuration={cameraPathDesigner.setSegmentDuration}
+                onSetAdjacentSegmentDurations={cameraPathDesigner.setAdjacentSegmentDurations}
+                onSetSegmentInterpolation={cameraPathDesigner.setSegmentInterpolation}
+                onSetSegmentEasing={cameraPathDesigner.setSegmentEasing}
+                onChangeShotJson={cameraPathDesigner.setShotJson}
+                onExportShot={cameraPathDesigner.exportShot}
+                onImportShot={cameraPathDesigner.importShot}
+                onChangeTimelineZoom={cameraPathDesigner.setTimelineZoom}
+                onChangeTimelineSnap={cameraPathDesigner.setTimelineSnap}
+	                headerActions={(
+	                  <>
+	                    <button type="button" onClick={cameraPathDesigner.toggleDocked} style={compactHeaderButton}>
+	                      Float
+	                    </button>
+	                    <button type="button" onClick={() => cameraPathDesigner.setOpen(false)} style={compactHeaderButton}>
+	                      Close
+	                    </button>
+	                  </>
+	                )}
+	              />
+            </div>
+          ) : null}
+        </div>
       </DemoMain>
+
+      {cameraMode === 'designer' && cameraPathDesigner.panelState.isOpen && !cameraPathDesigner.panelState.isDocked ? (
+        <CameraPathEditorFloatingWindow
+          rect={cameraPathDesigner.panelState.floatingRect}
+          onChangeRect={cameraPathDesigner.setFloatingRect}
+          onDock={() => cameraPathDesigner.setDocked(true)}
+          onClose={() => cameraPathDesigner.setOpen(false)}
+          isEditing={cameraPathDesigner.isEditing}
+          isPlaying={cameraPathDesigner.isPlaying}
+          loop={cameraPathDesigner.loop}
+          points={cameraPathDesigner.points}
+          pointCount={cameraPathDesigner.pointCount}
+          selectedIndex={cameraPathDesigner.selectedIndex}
+          isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
+          segments={cameraPathDesigner.segments}
+          defaults={cameraPathDesigner.defaults}
+          selectedSegmentIndex={cameraPathDesigner.selectedSegmentIndex}
+          shotJson={cameraPathDesigner.shotJson}
+          timelineZoom={cameraPathDesigner.panelState.timelineZoom}
+          timelineSnap={cameraPathDesigner.panelState.timelineSnap}
+          onToggleEditing={cameraPathDesigner.toggleEditing}
+          onPlay={cameraPathDesigner.play}
+          onStop={cameraPathDesigner.stop}
+          onToggleLoop={cameraPathDesigner.setLoop}
+          onAddPoint={cameraPathDesigner.addPoint}
+          onInsertPoint={cameraPathDesigner.insertPoint}
+          onDeletePoint={cameraPathDesigner.deletePoint}
+          onClearPath={cameraPathDesigner.clearPath}
+          onSelectPoint={cameraPathDesigner.selectPoint}
+          onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+          onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
+          onSelectSegment={(index) => cameraPathDesigner.setSelectedSegment(index)}
+          onSetDefaultInterpolation={cameraPathDesigner.setDefaultInterpolation}
+          onSetDefaultEasing={cameraPathDesigner.setDefaultEasing}
+          onApplyDefaultsToAllSegments={cameraPathDesigner.applyDefaultsToAllSegments}
+          onSetSegmentDuration={cameraPathDesigner.setSegmentDuration}
+          onSetAdjacentSegmentDurations={cameraPathDesigner.setAdjacentSegmentDurations}
+          onSetSegmentInterpolation={cameraPathDesigner.setSegmentInterpolation}
+          onSetSegmentEasing={cameraPathDesigner.setSegmentEasing}
+          onChangeShotJson={cameraPathDesigner.setShotJson}
+          onExportShot={cameraPathDesigner.exportShot}
+          onImportShot={cameraPathDesigner.importShot}
+          onChangeTimelineZoom={cameraPathDesigner.setTimelineZoom}
+          onChangeTimelineSnap={cameraPathDesigner.setTimelineSnap}
+        />
+      ) : null}
     </DemoLayout>
   );
 };

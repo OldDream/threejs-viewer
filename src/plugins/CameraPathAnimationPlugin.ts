@@ -1,6 +1,27 @@
 import * as THREE from 'three';
 import { Plugin, PluginContext } from '../core/PluginSystem';
 import { IOrbitControlsPlugin } from './OrbitControlsPlugin';
+import {
+  CameraPathDefaults,
+  CameraPathSegmentConfig,
+  EasingSpec,
+  InterpolationType,
+  SegmentOverride,
+} from './CameraPathTypes';
+export type {
+  CameraPathDefaults,
+  CameraPathSegmentConfig,
+  EasingSpec,
+  InterpolationType,
+  SegmentOverride,
+} from './CameraPathTypes';
+
+const MIN_SEGMENT_DURATION = 0.05;
+const DEFAULT_SEGMENT_DURATION = 2.0;
+const DEFAULT_DEFAULTS: CameraPathDefaults = {
+  interpolation: 'curve',
+  easing: { type: 'smoothstep', strength: 0.6 },
+};
 
 /**
  * Camera Path Animation Configuration
@@ -8,6 +29,10 @@ import { IOrbitControlsPlugin } from './OrbitControlsPlugin';
 export interface CameraPathAnimationConfig {
   /** Points defining the camera path */
   pathPoints?: THREE.Vector3[];
+  /** Segment configuration (point[i] -> point[i+1]) */
+  segments?: CameraPathSegmentConfig[];
+  /** Global defaults for segment inherit mode */
+  defaults?: Partial<CameraPathDefaults>;
   /** Duration of the animation in seconds */
   duration?: number;
   /** Whether to loop the animation */
@@ -51,12 +76,17 @@ export class CameraPathAnimationPlugin implements Plugin {
   readonly name = 'CameraPathAnimationPlugin';
   
   private _context: PluginContext | null = null;
+  private _pathPoints: THREE.Vector3[] = [];
   private _curve: THREE.CatmullRomCurve3 | null = null;
   private _progress: number = 0;
+  private _elapsedSeconds: number = 0;
+  private _totalDuration: number = 0;
   private _isPlaying: boolean = false;
   private _isDisposed: boolean = false;
   
   // Configuration
+  private _segments: CameraPathSegmentConfig[] | null = null;
+  private _defaults: CameraPathDefaults = { ...DEFAULT_DEFAULTS };
   private _duration: number = 10;
   private _loop: boolean = false;
   private _easeInOut: number = 0;
@@ -69,6 +99,7 @@ export class CameraPathAnimationPlugin implements Plugin {
   private _wasOrbitControlsEnabled: boolean = true;
   private _tempPos = new THREE.Vector3();
   private _tempLookAt = new THREE.Vector3();
+  private _tempLookAhead = new THREE.Vector3();
 
   initialize(context: PluginContext): void {
     if (this._isDisposed) {
@@ -84,11 +115,36 @@ export class CameraPathAnimationPlugin implements Plugin {
     if (this._isDisposed) return;
 
     if (config.pathPoints && config.pathPoints.length >= 2) {
-      this._curve = new THREE.CatmullRomCurve3(config.pathPoints);
+      this._pathPoints = config.pathPoints.map((point) => point.clone());
+      this._curve = new THREE.CatmullRomCurve3(this._pathPoints);
+      this._progress = 0;
+      this._elapsedSeconds = 0;
+    }
+
+    if (config.defaults) {
+      this._defaults = this._mergeDefaults(config.defaults);
+    }
+
+    if (config.segments !== undefined) {
+      this._segments = this._normalizeSegments(config.segments, this._pathPoints.length);
+      this._totalDuration = this._sumSegmentsDuration(this._segments);
+    } else if (config.pathPoints && config.pathPoints.length >= 2) {
+      // Only updating points: keep the current timing mode.
+      // - If previously configured with segments, re-normalize to match new point count.
+      // - Otherwise, stay in legacy duration mode.
+      if (this._segments) {
+        this._segments = this._normalizeSegments(this._segments, this._pathPoints.length);
+        this._totalDuration = this._sumSegmentsDuration(this._segments);
+      } else {
+        this._totalDuration = this._duration;
+      }
     }
     
     if (config.duration !== undefined && config.duration > 0) {
       this._duration = config.duration;
+      if (!this._segments) {
+        this._totalDuration = this._duration;
+      }
     }
     
     if (config.loop !== undefined) {
@@ -125,7 +181,7 @@ export class CameraPathAnimationPlugin implements Plugin {
    * Start or resume the animation
    */
   play(): void {
-    if (this._isDisposed || !this._curve || !this._context) return;
+    if (this._isDisposed || !this._context || !this._hasValidPath()) return;
     
     if (!this._isPlaying) {
       this._isPlaying = true;
@@ -158,13 +214,24 @@ export class CameraPathAnimationPlugin implements Plugin {
   stop(): void {
     this.pause();
     this._progress = 0;
+    this._elapsedSeconds = 0;
   }
 
   /**
    * Update loop called by PluginSystem
    */
   update(deltaTime: number): void {
-    if (!this._isPlaying || !this._curve || !this._context) return;
+    if (!this._isPlaying || !this._context || !this._hasValidPath()) return;
+
+    if (this._segments && this._segments.length > 0) {
+      this._updateWithSegments(deltaTime);
+    } else {
+      this._updateWithLegacyDuration(deltaTime);
+    }
+  }
+
+  private _updateWithLegacyDuration(deltaTime: number): void {
+    if (!this._curve || !this._context) return;
 
     // Update progress
     this._progress += deltaTime / this._duration;
@@ -176,7 +243,6 @@ export class CameraPathAnimationPlugin implements Plugin {
       } else {
         this._progress = 1;
         this.pause();
-        // Optional: Trigger completion event?
       }
     }
 
@@ -214,9 +280,65 @@ export class CameraPathAnimationPlugin implements Plugin {
     // Default: Do not change rotation if no mode selected
   }
 
+  private _updateWithSegments(deltaTime: number): void {
+    if (!this._context || !this._segments || this._segments.length === 0 || this._pathPoints.length < 2) {
+      return;
+    }
+
+    this._elapsedSeconds += Math.max(0, deltaTime);
+
+    const totalDuration = this._totalDuration;
+    if (totalDuration <= 0) {
+      return;
+    }
+
+    if (this._elapsedSeconds >= totalDuration) {
+      if (this._loop) {
+        this._elapsedSeconds %= totalDuration;
+      } else {
+        this._elapsedSeconds = totalDuration;
+        this.pause();
+      }
+    }
+
+    const segmentState = this._resolveSegmentState(this._elapsedSeconds);
+    if (!segmentState) return;
+
+    const easing = this._resolveSegmentEasing(segmentState.segmentIndex);
+    const easedLocalT = this._applyEasingSpec(easing, segmentState.localT);
+
+    const camera = this._context.camera;
+    this._evaluateSegmentPosition(segmentState.segmentIndex, easedLocalT, this._tempPos);
+    camera.position.copy(this._tempPos);
+
+    if (this._target) {
+      if (this._target instanceof THREE.Object3D) {
+        this._target.getWorldPosition(this._tempLookAt);
+        camera.lookAt(this._tempLookAt);
+      } else {
+        camera.lookAt(this._target);
+      }
+      return;
+    }
+
+    if (this._fixedDirection) {
+      this._tempLookAt.copy(camera.position).add(this._fixedDirection);
+      camera.lookAt(this._tempLookAt);
+      return;
+    }
+
+    if (this._lookAlongPath) {
+      const lookAheadDelta = Math.max(0.016, totalDuration * 0.005);
+      this._evaluatePositionAtElapsed(this._elapsedSeconds + lookAheadDelta, this._tempLookAhead);
+      camera.lookAt(this._tempLookAhead);
+    }
+  }
+
   dispose(): void {
     if (this._isDisposed) return;
     this.stop();
+    this._pathPoints = [];
+    this._segments = null;
     this._curve = null;
     this._context = null;
     this._target = null;
@@ -236,5 +358,216 @@ export class CameraPathAnimationPlugin implements Plugin {
     if (this._easeInOut <= 0) return t;
     const s = t * t * (3 - 2 * t);
     return t + (s - t) * this._easeInOut;
+  }
+
+  private _hasValidPath(): boolean {
+    if (this._pathPoints.length < 2) return false;
+    if (this._segments) {
+      return this._segments.length > 0;
+    }
+    return this._curve !== null;
+  }
+
+  private _mergeDefaults(partial: Partial<CameraPathDefaults>): CameraPathDefaults {
+    const base = this._defaults ?? DEFAULT_DEFAULTS;
+    const interpolation = partial.interpolation ?? base.interpolation;
+    const easing = partial.easing ? this._normalizeEasingSpec(partial.easing) : base.easing;
+    return {
+      interpolation,
+      easing,
+    };
+  }
+
+  private _normalizeSegments(
+    segments: CameraPathSegmentConfig[],
+    pointCount: number
+  ): CameraPathSegmentConfig[] {
+    const segmentCount = Math.max(0, pointCount - 1);
+    const normalized: CameraPathSegmentConfig[] = [];
+
+    for (let index = 0; index < segmentCount; index++) {
+      const source = segments[index];
+      const duration = source?.duration;
+      const normalizedDuration = typeof duration === 'number' && Number.isFinite(duration) && duration > 0
+        ? Math.max(MIN_SEGMENT_DURATION, duration)
+        : DEFAULT_SEGMENT_DURATION;
+
+      const interpolation = source?.interpolation
+        ? this._normalizeSegmentOverride<InterpolationType>(source.interpolation, (value): value is InterpolationType => {
+            return value === 'linear' || value === 'curve';
+          })
+        : { mode: 'inherit' as const };
+
+      const easing = source?.easing
+        ? this._normalizeSegmentOverride<EasingSpec>(source.easing, (value): value is EasingSpec => {
+            return this._isEasingSpec(value);
+          })
+        : { mode: 'inherit' as const };
+
+      normalized.push({
+        duration: normalizedDuration,
+        interpolation,
+        easing,
+      });
+    }
+
+    return normalized;
+  }
+
+  private _normalizeSegmentOverride<T>(
+    override: SegmentOverride<T>,
+    validator: (value: unknown) => value is T
+  ): SegmentOverride<T> {
+    if (override.mode === 'override' && validator(override.value)) {
+      return {
+        mode: 'override',
+        value: override.value,
+      };
+    }
+    return { mode: 'inherit' };
+  }
+
+  private _isEasingSpec(value: unknown): value is EasingSpec {
+    if (typeof value !== 'object' || value === null) return false;
+    const easing = value as EasingSpec;
+    if (easing.type === 'linear') return true;
+    if (easing.type === 'smoothstep') {
+      return Number.isFinite(easing.strength);
+    }
+    return false;
+  }
+
+  private _normalizeEasingSpec(easing: EasingSpec): EasingSpec {
+    if (easing.type === 'linear') {
+      return { type: 'linear' };
+    }
+
+    return {
+      type: 'smoothstep',
+      strength: Math.max(0, Math.min(1, easing.strength)),
+    };
+  }
+
+  private _sumSegmentsDuration(segments: CameraPathSegmentConfig[]): number {
+    let total = 0;
+    for (const segment of segments) {
+      total += Math.max(MIN_SEGMENT_DURATION, segment.duration);
+    }
+    return total;
+  }
+
+  private _resolveSegmentState(elapsed: number): { segmentIndex: number; localT: number } | null {
+    if (!this._segments || this._segments.length === 0) {
+      return null;
+    }
+
+    const clampedElapsed = Math.max(0, Math.min(elapsed, this._totalDuration));
+    let accumulated = 0;
+
+    for (let segmentIndex = 0; segmentIndex < this._segments.length; segmentIndex++) {
+      const segment = this._segments[segmentIndex];
+      if (!segment) continue;
+      const duration = Math.max(MIN_SEGMENT_DURATION, segment.duration);
+      const nextAccumulated = accumulated + duration;
+      const isLastSegment = segmentIndex === this._segments.length - 1;
+      const insideSegment = clampedElapsed < nextAccumulated || isLastSegment;
+
+      if (insideSegment) {
+        const local = (clampedElapsed - accumulated) / duration;
+        return {
+          segmentIndex,
+          localT: Math.max(0, Math.min(1, local)),
+        };
+      }
+
+      accumulated = nextAccumulated;
+    }
+
+    return null;
+  }
+
+  private _resolveSegmentInterpolation(segmentIndex: number): InterpolationType {
+    const segment = this._segments?.[segmentIndex];
+    if (segment?.interpolation?.mode === 'override') {
+      return segment.interpolation.value;
+    }
+    return this._defaults.interpolation;
+  }
+
+  private _resolveSegmentEasing(segmentIndex: number): EasingSpec {
+    const segment = this._segments?.[segmentIndex];
+    if (segment?.easing?.mode === 'override') {
+      return this._normalizeEasingSpec(segment.easing.value);
+    }
+    return this._normalizeEasingSpec(this._defaults.easing);
+  }
+
+  private _applyEasingSpec(easing: EasingSpec, t: number): number {
+    const clamped = Math.max(0, Math.min(1, t));
+    if (easing.type === 'linear') {
+      return clamped;
+    }
+
+    const smooth = clamped * clamped * (3 - 2 * clamped);
+    const strength = Math.max(0, Math.min(1, easing.strength));
+    return clamped + (smooth - clamped) * strength;
+  }
+
+  private _evaluateSegmentPosition(segmentIndex: number, localT: number, out: THREE.Vector3): void {
+    const interpolation = this._resolveSegmentInterpolation(segmentIndex);
+
+    if (interpolation === 'linear') {
+      const start = this._pathPoints[segmentIndex];
+      const end = this._pathPoints[segmentIndex + 1];
+      if (!start || !end) {
+        out.set(0, 0, 0);
+        return;
+      }
+      out.copy(start).lerp(end, localT);
+      return;
+    }
+
+    if (!this._curve || this._pathPoints.length < 2) {
+      out.set(0, 0, 0);
+      return;
+    }
+
+    const segmentCount = this._pathPoints.length - 1;
+    const curveT = (segmentIndex + localT) / segmentCount;
+    this._curve.getPoint(Math.max(0, Math.min(1, curveT)), out);
+  }
+
+  private _evaluatePositionAtElapsed(elapsed: number, out: THREE.Vector3): void {
+    if (!this._segments || this._segments.length === 0) {
+      if (!this._curve) {
+        out.set(0, 0, 0);
+        return;
+      }
+      const progress = Math.max(0, Math.min(1, this._progress));
+      const eased = this._applyEaseInOut(progress);
+      this._curve.getPointAt(eased, out);
+      return;
+    }
+
+    if (this._totalDuration <= 0) {
+      out.set(0, 0, 0);
+      return;
+    }
+
+    let normalizedElapsed = elapsed;
+    if (this._loop) {
+      normalizedElapsed = ((elapsed % this._totalDuration) + this._totalDuration) % this._totalDuration;
+    } else {
+      normalizedElapsed = Math.max(0, Math.min(this._totalDuration, elapsed));
+    }
+
+    const state = this._resolveSegmentState(normalizedElapsed);
+    if (!state) {
+      out.set(0, 0, 0);
+      return;
+    }
+    const easing = this._resolveSegmentEasing(state.segmentIndex);
+    const easedLocalT = this._applyEasingSpec(easing, state.localT);
+    this._evaluateSegmentPosition(state.segmentIndex, easedLocalT, out);
   }
 }

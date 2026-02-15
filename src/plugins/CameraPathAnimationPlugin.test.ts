@@ -123,4 +123,56 @@ describe('CameraPathAnimationPlugin', () => {
     plugin.pause();
     expect(mockControls.enabled).toBe(true);
   });
+
+  it('should support per-segment duration with linear interpolation', () => {
+    const points = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(10, 0, 0),
+      new THREE.Vector3(10, 10, 0),
+    ];
+
+    plugin.configure({
+      pathPoints: points,
+      segments: [
+        { duration: 1, interpolation: { mode: 'override', value: 'linear' }, easing: { mode: 'override', value: { type: 'linear' } } },
+        { duration: 3, interpolation: { mode: 'override', value: 'linear' }, easing: { mode: 'override', value: { type: 'linear' } } },
+      ],
+      defaults: {
+        interpolation: 'curve',
+        easing: { type: 'smoothstep', strength: 0.6 },
+      },
+      autoPlay: true,
+    });
+
+    plugin.update(1.5);
+
+    expect(camera.position.x).toBeCloseTo(10, 4);
+    expect(camera.position.y).toBeCloseTo((0.5 / 3) * 10, 4);
+  });
+
+  it('should support per-segment easing override', () => {
+    const points = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(10, 0, 0),
+    ];
+
+    plugin.configure({
+      pathPoints: points,
+      segments: [
+        {
+          duration: 1,
+          interpolation: { mode: 'override', value: 'linear' },
+          easing: { mode: 'override', value: { type: 'smoothstep', strength: 1 } },
+        },
+      ],
+      defaults: {
+        interpolation: 'linear',
+        easing: { type: 'linear' },
+      },
+      autoPlay: true,
+    });
+
+    plugin.update(0.25);
+    expect(camera.position.x).toBeCloseTo(1.5625, 4);
+  });
 });

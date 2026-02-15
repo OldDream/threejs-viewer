@@ -50,7 +50,12 @@ export {
 
 export {
   CameraPathAnimationPlugin,
-  type CameraPathAnimationConfig
+  type CameraPathAnimationConfig,
+  type CameraPathDefaults,
+  type CameraPathSegmentConfig,
+  type EasingSpec,
+  type InterpolationType,
+  type SegmentOverride,
 } from './plugins/CameraPathAnimationPlugin';
 
 export {
