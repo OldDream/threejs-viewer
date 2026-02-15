@@ -180,6 +180,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
     <ControlSection title="Camera Path Designer">
       <div style={styles.row}>
         <button
+          type="button"
           onClick={onToggleEditing}
           disabled={isPlaying}
           style={{
@@ -193,10 +194,11 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
       </div>
 
       <div style={styles.row}>
-        <button onClick={onAddPoint} disabled={isPlaying} style={styles.smallButton}>
+        <button type="button" onClick={onAddPoint} disabled={isPlaying} style={styles.smallButton}>
           Add Point (Current View)
         </button>
         <button
+          type="button"
           onClick={onInsertPoint}
           disabled={isPlaying || selectedIndex === null}
           style={styles.smallButton}
@@ -207,6 +209,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
 
       <div style={styles.row}>
         <button
+          type="button"
           onClick={onDeletePoint}
           disabled={isPlaying || selectedIndex === null}
           style={{
@@ -217,6 +220,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
           Delete Selected
         </button>
         <button
+          type="button"
           onClick={onClearPath}
           disabled={isPlaying}
           style={{
@@ -248,7 +252,10 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
               return (
                 <div
                   key={index}
-                  onClick={() => onSelectPoint(index)}
+                  onClick={() => {
+                    if (isPlaying) return;
+                    onSelectPoint(index);
+                  }}
                   style={{
                     ...styles.listRow,
                     ...(isSelected ? styles.listRowSelected : null),
@@ -263,6 +270,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onInsertPointAfterAt(index);
@@ -273,6 +281,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
                     Insert
                   </button>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeletePointAt(index);
@@ -290,10 +299,11 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
       </div>
 
       <div style={{ ...styles.row, marginTop: spacing.lg }}>
-        <button onClick={onSetTargetToCenter} disabled={isPlaying} style={styles.smallButton}>
+        <button type="button" onClick={onSetTargetToCenter} disabled={isPlaying} style={styles.smallButton}>
           Target: Model Center
         </button>
         <button
+          type="button"
           onClick={onPickTargetOnce}
           disabled={isPlaying}
           style={{
@@ -315,7 +325,11 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
               step={0.5}
               value={duration}
               disabled={isPlaying}
-              onChange={(e) => onChangeDuration(Number(e.target.value))}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                if (!Number.isFinite(next)) return;
+                onChangeDuration(Math.max(1, next));
+              }}
               style={themeStyles.input}
             />
           </div>
@@ -353,6 +367,7 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
 
       <div style={{ marginTop: spacing.lg }}>
         <button
+          type="button"
           onClick={isPlaying ? onStop : onPlay}
           style={{
             ...themeStyles.button,
@@ -378,16 +393,17 @@ export function CameraPathDesignerControl(props: CameraPathDesignerControlProps)
           spellCheck={false}
         />
         <div style={styles.row}>
-          <button onClick={onExportShot} style={styles.smallButton}>
+          <button type="button" onClick={onExportShot} style={styles.smallButton}>
             Export
           </button>
-          <button onClick={onImportShot} style={styles.smallButton}>
+          <button type="button" onClick={onImportShot} style={styles.smallButton}>
             Import
           </button>
         </div>
       </div>
 
       <button
+        type="button"
         onClick={onReset}
         style={{
           ...themeStyles.button,

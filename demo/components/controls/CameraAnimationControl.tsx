@@ -44,6 +44,7 @@ export function CameraAnimationControl({
       </div>
       
       <button
+        type="button"
         onClick={onToggle}
         style={{
           ...themeStyles.button,

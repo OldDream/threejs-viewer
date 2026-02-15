@@ -16,6 +16,12 @@ export function useCameraPathDesigner(
 ) {
   const designerRef = useRef<CameraPathDesignerPlugin | null>(null);
   const animationRef = useRef<CameraPathAnimationPlugin | null>(null);
+  const lastSnapshotRef = useRef<{
+    pointsKey: string;
+    selectedIndex: number | null;
+    isPickTargetArmed: boolean;
+    isEditing: boolean;
+  } | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,16 +41,56 @@ export function useCameraPathDesigner(
     return loadResult ? loadResult.center.clone() : new THREE.Vector3(0, 0, 0);
   }, [loadResult]);
 
+  /**
+   * 生成路径点的轻量签名，用于避免重复 setState 造成的频繁重渲染。
+   * - 这里对坐标做 0.0001 的量化（*10000 取整），足够支撑 UI 展示与列表更新。
+   */
+  const buildPointsKey = useCallback((pathPoints: THREE.Vector3[]) => {
+    const scale = 10000;
+    let key = `${pathPoints.length}|`;
+    for (const p of pathPoints) {
+      key += `${Math.round(p.x * scale)},${Math.round(p.y * scale)},${Math.round(p.z * scale)};`;
+    }
+    return key;
+  }, []);
+
   const syncFromDesigner = useCallback(() => {
     const d = designerRef.current;
     if (!d) return;
     const pathPoints = d.getPathPoints();
-    setPoints(pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z })));
-    setPointCount(pathPoints.length);
-    setSelectedIndex(d.getSelectedIndex());
-    setIsPickTargetArmed(d.isPickTargetArmed());
-    setIsEditing(d.isEnabled());
-  }, []);
+    const nextSnapshot = {
+      pointsKey: buildPointsKey(pathPoints),
+      selectedIndex: d.getSelectedIndex(),
+      isPickTargetArmed: d.isPickTargetArmed(),
+      isEditing: d.isEnabled(),
+    };
+
+    const prev = lastSnapshotRef.current;
+    if (
+      prev &&
+      prev.pointsKey === nextSnapshot.pointsKey &&
+      prev.selectedIndex === nextSnapshot.selectedIndex &&
+      prev.isPickTargetArmed === nextSnapshot.isPickTargetArmed &&
+      prev.isEditing === nextSnapshot.isEditing
+    ) {
+      return;
+    }
+    lastSnapshotRef.current = nextSnapshot;
+
+    if (!prev || prev.pointsKey !== nextSnapshot.pointsKey) {
+      setPoints(pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z })));
+      setPointCount(pathPoints.length);
+    }
+    if (!prev || prev.selectedIndex !== nextSnapshot.selectedIndex) {
+      setSelectedIndex(nextSnapshot.selectedIndex);
+    }
+    if (!prev || prev.isPickTargetArmed !== nextSnapshot.isPickTargetArmed) {
+      setIsPickTargetArmed(nextSnapshot.isPickTargetArmed);
+    }
+    if (!prev || prev.isEditing !== nextSnapshot.isEditing) {
+      setIsEditing(nextSnapshot.isEditing);
+    }
+  }, [buildPointsKey]);
 
   const onViewerReady = useCallback((viewerCore: ViewerCore) => {
     const existingDesigner = viewerCore.plugins.get<CameraPathDesignerPlugin>('CameraPathDesignerPlugin');
@@ -74,6 +120,8 @@ export function useCameraPathDesigner(
       designer.setTargetPoint(defaultTarget);
     }
 
+    // ViewerCore 变化时清理一次快照，避免拿旧快照误判“无变化”
+    lastSnapshotRef.current = null;
     syncFromDesigner();
   }, [defaultTarget, duration, easeInOut, loop, syncFromDesigner]);
 
@@ -111,14 +159,17 @@ export function useCameraPathDesigner(
     const d = designerRef.current;
     if (!d) return;
 
-    const id = window.setInterval(() => {
-      syncFromDesigner();
-    }, 150);
+    // 仅在需要反映“插件内部事件”时轮询同步：
+    // - 编辑模式下拖拽点位会在插件内部更新
+    // - “Pick Once” 需要反映 armed 状态的自动取消
+    if (!isEditing && !isPickTargetArmed) return;
+
+    const id = window.setInterval(syncFromDesigner, 150);
 
     return () => {
       window.clearInterval(id);
     };
-  }, [syncFromDesigner]);
+  }, [isEditing, isPickTargetArmed, syncFromDesigner]);
 
   const enableEditing = useCallback(() => {
     const d = designerRef.current;
