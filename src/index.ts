@@ -72,6 +72,26 @@ export {
   type GridConfig
 } from './components/ThreeViewer';
 
+export {
+  CameraScriptController,
+  type CameraScriptControllerProps,
+  type CameraScriptMode,
+} from './components/CameraScriptController';
+
+export {
+  parseCameraShot,
+  toCameraPathAnimationConfig,
+  type CameraShot,
+} from './camera/CameraShotIO';
+
+export {
+  parseCameraViewPreset,
+  exportCameraViewPreset,
+  applyCameraViewPreset,
+  type CameraViewPreset,
+  type CameraViewPresetV1,
+} from './camera/CameraViewPreset';
+
 // Instance Access API exports
 export { useThreeInstance } from './hooks/useThreeInstance';
 export type { 

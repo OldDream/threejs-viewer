@@ -1,5 +1,13 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { type IOrbitControlsPlugin, ThreeViewerHandle, ViewerCore } from '../src';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
+import * as THREE from 'three';
+import {
+  applyCameraViewPreset,
+  exportCameraViewPreset,
+  parseCameraViewPreset,
+  type IOrbitControlsPlugin,
+  ThreeViewerHandle,
+  ViewerCore,
+} from '../src';
 
 // Layout components
 import { DemoLayout, DemoMain } from './components/DemoLayout';
@@ -16,10 +24,13 @@ import { CameraModeControl, CameraFeatureMode } from './components/controls/Came
 import { CameraMovementControl } from './components/controls/CameraMovementControl';
 import { CameraAnimationControl } from './components/controls/CameraAnimationControl';
 import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
+import { CameraViewPresetControl } from './components/controls/CameraViewPresetControl';
 import { StatusDisplay } from './components/controls/StatusDisplay';
 import { ControlsInstructions } from './components/controls/ControlsInstructions';
 import { CameraPathEditorPanel } from './components/panels/CameraPathEditorPanel';
 import { CameraPathEditorFloatingWindow } from './components/panels/CameraPathEditorFloatingWindow';
+import { CameraViewPresetModal } from './components/panels/CameraViewPresetModal';
+import { Demo2 } from './pages/Demo2';
 
 // Hooks
 import { useModelLoader } from './hooks/useModelLoader';
@@ -85,11 +96,13 @@ const styles = {
  * 
  * Requirement 6.3: THE project SHALL include a demo application that showcases the Viewer component
  */
-	const App: React.FC = () => {
+const Demo1: React.FC = () => {
   const viewerRef = useRef<ThreeViewerHandle>(null);
   const viewerCoreRef = useRef<ViewerCore | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraFeatureMode>('animation');
   const [viewerCoreRevision, setViewerCoreRevision] = useState(0);
+  const [isViewPresetOpen, setIsViewPresetOpen] = useState(false);
+  const [viewPresetJson, setViewPresetJson] = useState('');
   const pivotSyncRafRef = useRef<number | null>(null);
   const pendingPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
   const lastSyncedPivotRef = useRef<{ x: number; y: number; z: number } | null>(null);
@@ -106,6 +119,14 @@ const styles = {
   const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
   const isCameraLocked = cameraAnimation.isAnimating || cameraPathDesigner.isPlaying;
 	  const cameraMovement = useCameraMovement(viewerRef, isCameraLocked);
+
+  const modelRadius = useMemo(() => {
+    const loadResult = modelLoader.loadResult;
+    if (!loadResult) return undefined;
+    const sphere = new THREE.Sphere();
+    loadResult.boundingBox.getBoundingSphere(sphere);
+    return sphere.radius > 0 ? sphere.radius : undefined;
+  }, [modelLoader.loadResult]);
 
 	  const compactHeaderButton: React.CSSProperties = {
 	    ...themeStyles.buttonSecondary,
@@ -299,9 +320,56 @@ const styles = {
     cameraMovement.handleReset();
   };
 
+  const handleExportViewPreset = useCallback(() => {
+    const viewerCore = viewerCoreRef.current;
+    if (!viewerCore) return;
+
+    const orbitControls = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin')?.controls;
+    const viewer = orbitControls
+      ? { camera: viewerCore.camera.camera, orbitControls }
+      : { camera: viewerCore.camera.camera };
+    const options = {
+      ...(modelRadius ? { modelRadius } : {}),
+      radiusMode: 'absolute' as const,
+      targetMode: 'world' as const,
+    };
+    const preset = exportCameraViewPreset(viewer, options);
+    setViewPresetJson(JSON.stringify(preset, null, 2));
+  }, [modelRadius]);
+
+  const handleApplyViewPreset = useCallback(() => {
+    const viewerCore = viewerCoreRef.current;
+    if (!viewerCore) return;
+
+    try {
+      const preset = parseCameraViewPreset(viewPresetJson);
+      const orbitControls = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin')?.controls;
+      const viewer = orbitControls
+        ? { camera: viewerCore.camera.camera, orbitControls }
+        : { camera: viewerCore.camera.camera };
+      const options = {
+        ...(modelLoader.loadResult ? { modelCenter: modelLoader.loadResult.center } : {}),
+        ...(modelRadius ? { modelRadius } : {}),
+      };
+      applyCameraViewPreset(viewer, preset, options);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      window.alert(message);
+    }
+  }, [modelLoader.loadResult, modelRadius, viewPresetJson]);
+
   return (
     <DemoLayout>
       <style>{spinnerKeyframes}</style>
+
+      <CameraViewPresetModal
+        isOpen={isViewPresetOpen}
+        onClose={() => setIsViewPresetOpen(false)}
+        json={viewPresetJson}
+        onChangeJson={setViewPresetJson}
+        onExportFromCamera={handleExportViewPreset}
+        onApplyToCamera={handleApplyViewPreset}
+      />
       
       <DemoHeader />
       
@@ -386,6 +454,8 @@ const styles = {
               onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
             />
           )}
+
+          <CameraViewPresetControl onOpen={() => setIsViewPresetOpen(true)} />
 
           <StatusDisplay
             isLoading={modelLoader.isLoading}
@@ -531,6 +601,25 @@ const styles = {
       ) : null}
     </DemoLayout>
   );
+};
+
+type DemoRoute = 'demo1' | 'demo2';
+
+function resolveRouteFromHash(hash: string): DemoRoute {
+  if (hash.startsWith('#/demo2')) return 'demo2';
+  return 'demo1';
+}
+
+const App: React.FC = () => {
+  const [route, setRoute] = useState<DemoRoute>(() => resolveRouteFromHash(window.location.hash));
+
+  useEffect(() => {
+    const handleHashChange = () => setRoute(resolveRouteFromHash(window.location.hash));
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  return route === 'demo2' ? <Demo2 /> : <Demo1 />;
 };
 
 export default App;
