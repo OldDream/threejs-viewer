@@ -13,6 +13,7 @@ export interface ModelLoadResult {
   model: THREE.Group;
   boundingBox: THREE.Box3;
   center: THREE.Vector3;
+  animations: THREE.AnimationClip[];
 }
 
 /**
@@ -181,6 +182,7 @@ export class ModelLoaderPlugin implements IModelLoaderPlugin {
         model,
         boundingBox,
         center,
+        animations: gltf.animations ?? [],
       };
     } catch (error) {
       // Check if this request is still the latest one

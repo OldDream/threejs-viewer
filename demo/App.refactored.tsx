@@ -23,6 +23,7 @@ import { GridControl } from './components/controls/GridControl';
 import { CameraModeControl, CameraFeatureMode } from './components/controls/CameraModeControl';
 import { CameraMovementControl } from './components/controls/CameraMovementControl';
 import { CameraAnimationControl } from './components/controls/CameraAnimationControl';
+import { ModelAnimationControl } from './components/controls/ModelAnimationControl';
 import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
 import { CameraViewPresetControl } from './components/controls/CameraViewPresetControl';
 import { StatusDisplay } from './components/controls/StatusDisplay';
@@ -40,6 +41,7 @@ import { useGridControl } from './hooks/useGridControl';
 import { useCameraMovement } from './hooks/useCameraMovement';
 import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { useCameraPathDesigner } from './hooks/useCameraPathDesigner';
+import { useModelAnimation } from './hooks/useModelAnimation';
 
 // Styles
 import { styles as themeStyles, colors, typography } from './styles/theme';
@@ -115,6 +117,7 @@ const Demo1: React.FC = () => {
   const pivotControl = usePivotControl();
   const zoomControl = useZoomControl();
   const gridControl = useGridControl();
+  const modelAnimation = useModelAnimation(viewerRef, modelLoader.loadResult);
   const cameraAnimation = useCameraAnimation(viewerRef, modelLoader.loadResult);
   const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
   const isCameraLocked = cameraAnimation.isAnimating || cameraPathDesigner.isPlaying;
@@ -208,6 +211,7 @@ const Demo1: React.FC = () => {
     viewerCoreRef.current = viewerCore;
     setViewerCoreRevision((v) => v + 1);
     cameraMovement.onViewerReady(viewerCore);
+    modelAnimation.onViewerReady(viewerCore);
     if (cameraMode === 'animation') {
       cameraAnimation.onViewerReady(viewerCore);
     } else {
@@ -217,6 +221,7 @@ const Demo1: React.FC = () => {
     cameraAnimation.onViewerReady,
     cameraMode,
     cameraMovement.onViewerReady,
+    modelAnimation.onViewerReady,
     cameraPathDesigner.onViewerReady,
   ]);
 
@@ -415,6 +420,13 @@ const Demo1: React.FC = () => {
             onToggleGrid={gridControl.setShowGrid}
             onToggleAxes={gridControl.setShowAxes}
             onChangePlane={gridControl.setGridPlane}
+          />
+
+          <ModelAnimationControl
+            autoPlay={modelAnimation.autoPlay}
+            hasAnimations={modelAnimation.hasAnimations}
+            clipCount={modelAnimation.clipCount}
+            onToggleAutoPlay={modelAnimation.toggleAutoPlay}
           />
 
           <CameraModeControl mode={cameraMode} onChangeMode={handleChangeCameraMode} />

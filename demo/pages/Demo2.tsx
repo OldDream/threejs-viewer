@@ -7,10 +7,12 @@ import { DemoSidebar } from '../components/DemoSidebar';
 import { DemoViewer } from '../components/DemoViewer';
 import { ControlSection } from '../components/controls/ControlSection';
 import { ModelUrlControl } from '../components/controls/ModelUrlControl';
+import { ModelAnimationControl } from '../components/controls/ModelAnimationControl';
 import { StatusDisplay } from '../components/controls/StatusDisplay';
 import { ControlsInstructions } from '../components/controls/ControlsInstructions';
 import { colors, spacing, styles as themeStyles, typography } from '../styles/theme';
 import { useModelLoader } from '../hooks/useModelLoader';
+import { useModelAnimation } from '../hooks/useModelAnimation';
 
 const styles = {
   viewerColumn: {
@@ -54,6 +56,7 @@ const styles = {
 export function Demo2() {
   const viewerRef = useRef<ThreeViewerHandle>(null);
   const modelLoader = useModelLoader();
+  const modelAnimation = useModelAnimation(viewerRef, modelLoader.loadResult);
   const [mode, setMode] = useState<CameraScriptMode>('none');
   const [loop, setLoop] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -90,6 +93,13 @@ export function Demo2() {
             onModelFileSelect={modelLoader.handleModelFileSelect}
             onTextureFilesSelect={modelLoader.handleTextureFilesSelect}
             onLoad={modelLoader.handleLoad}
+          />
+
+          <ModelAnimationControl
+            autoPlay={modelAnimation.autoPlay}
+            hasAnimations={modelAnimation.hasAnimations}
+            clipCount={modelAnimation.clipCount}
+            onToggleAutoPlay={modelAnimation.toggleAutoPlay}
           />
 
           <ControlSection title="Camera Script">
@@ -170,6 +180,7 @@ export function Demo2() {
               onLoad={modelLoader.handleLoadSuccess}
               onError={modelLoader.handleLoadError}
               onLoadingChange={modelLoader.handleLoadingChange}
+              onViewerReady={modelAnimation.onViewerReady}
             />
           </div>
 
@@ -189,4 +200,3 @@ export function Demo2() {
     </DemoLayout>
   );
 }
-

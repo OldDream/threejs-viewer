@@ -30,6 +30,11 @@ export {
 } from './plugins/ModelLoaderPlugin';
 
 export {
+  ModelAnimationPlugin,
+  type ModelAnimationConfig,
+} from './plugins/ModelAnimationPlugin';
+
+export {
   OrbitControlsPlugin,
   type IOrbitControlsPlugin,
   type OrbitControlsConfig
