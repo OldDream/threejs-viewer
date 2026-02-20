@@ -20,9 +20,9 @@ function readVector3Like(value: unknown, label: string): { x: number; y: number;
     throw new Error(`Invalid ${label}: expected object`);
   }
   return {
-    x: readFiniteNumber(value.x, `${label}.x`),
-    y: readFiniteNumber(value.y, `${label}.y`),
-    z: readFiniteNumber(value.z, `${label}.z`),
+    x: readFiniteNumber(value['x'], `${label}.x`),
+    y: readFiniteNumber(value['y'], `${label}.y`),
+    z: readFiniteNumber(value['z'], `${label}.z`),
   };
 }
 
@@ -42,34 +42,58 @@ export function parseCameraShot(input: string | unknown): CameraShot {
     throw new Error('Invalid cameraShot: expected object');
   }
 
-  if (typeof value.loop !== 'boolean') {
+  const loop = value['loop'];
+  if (typeof loop !== 'boolean') {
     throw new Error('Invalid cameraShot.loop: expected boolean');
   }
 
-  if (!Array.isArray(value.pathPoints)) {
+  const rawPathPoints = value['pathPoints'];
+  if (!Array.isArray(rawPathPoints)) {
     throw new Error('Invalid cameraShot.pathPoints: expected array');
   }
 
-  const pathPoints = value.pathPoints.map((point, index) => readVector3Like(point, `cameraShot.pathPoints[${index}]`));
+  const pathPoints = rawPathPoints.map((point, index) => readVector3Like(point, `cameraShot.pathPoints[${index}]`));
 
-  if (!Array.isArray(value.segments)) {
+  const rawSegments = value['segments'];
+  if (!Array.isArray(rawSegments)) {
     throw new Error('Invalid cameraShot.segments: expected array (export from demo)');
   }
 
-  if (value.target !== undefined && value.target !== null) {
-    readVector3Like(value.target, 'cameraShot.target');
+  const rawTarget = value['target'];
+  if (rawTarget !== undefined && rawTarget !== null) {
+    readVector3Like(rawTarget, 'cameraShot.target');
   }
 
-  return {
-    version: value.version === 2 ? 2 : undefined,
-    duration: typeof value.duration === 'number' && Number.isFinite(value.duration) ? value.duration : undefined,
-    loop: value.loop,
-    easeInOut: typeof value.easeInOut === 'number' && Number.isFinite(value.easeInOut) ? value.easeInOut : undefined,
-    defaults: isRecord(value.defaults) ? (value.defaults as CameraShot['defaults']) : undefined,
-    segments: value.segments as CameraShot['segments'],
+  const shot: CameraShot = {
+    loop,
+    segments: rawSegments as NonNullable<CameraShot['segments']>,
     pathPoints,
-    target: value.target === undefined ? undefined : (value.target as CameraShot['target']),
   };
+
+  if (value['version'] === 2) {
+    shot.version = 2;
+  }
+
+  const duration = value['duration'];
+  if (typeof duration === 'number' && Number.isFinite(duration)) {
+    shot.duration = duration;
+  }
+
+  const easeInOut = value['easeInOut'];
+  if (typeof easeInOut === 'number' && Number.isFinite(easeInOut)) {
+    shot.easeInOut = easeInOut;
+  }
+
+  const defaults = value['defaults'];
+  if (isRecord(defaults)) {
+    shot.defaults = defaults as unknown as NonNullable<CameraShot['defaults']>;
+  }
+
+  if (rawTarget !== undefined) {
+    shot.target = rawTarget as NonNullable<CameraShot['target']>;
+  }
+
+  return shot;
 }
 
 export function toCameraPathAnimationConfig(
@@ -95,11 +119,20 @@ export function toCameraPathAnimationConfig(
   const config: CameraPathAnimationConfig = {
     pathPoints,
     segments: shot.segments,
-    defaults: shot.defaults,
     loop,
-    duration: shot.duration,
-    easeInOut: shot.easeInOut,
   };
+
+  if (shot.defaults !== undefined) {
+    config.defaults = shot.defaults;
+  }
+
+  if (shot.duration !== undefined) {
+    config.duration = shot.duration;
+  }
+
+  if (shot.easeInOut !== undefined) {
+    config.easeInOut = shot.easeInOut;
+  }
 
   if (shot.target) {
     config.target = new THREE.Vector3(shot.target.x, shot.target.y, shot.target.z);
@@ -107,4 +140,3 @@ export function toCameraPathAnimationConfig(
 
   return config;
 }
-

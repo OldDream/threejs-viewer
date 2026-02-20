@@ -191,8 +191,8 @@ export function Demo2() {
             cameraViewPresetJson={cameraViewPresetJson}
             loop={loop}
             autoPlay={autoPlay}
-            modelCenter={modelLoader.loadResult?.center}
-            modelRadius={modelRadius}
+            {...(modelLoader.loadResult ? { modelCenter: modelLoader.loadResult.center } : {})}
+            {...(modelRadius !== undefined ? { modelRadius } : {})}
             onError={handleControllerError}
           />
         </div>

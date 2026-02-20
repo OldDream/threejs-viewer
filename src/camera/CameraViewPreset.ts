@@ -29,9 +29,9 @@ function readVector3Like(value: unknown, label: string): { x: number; y: number;
     throw new Error(`Invalid ${label}: expected object`);
   }
   return {
-    x: readFiniteNumber(value.x, `${label}.x`),
-    y: readFiniteNumber(value.y, `${label}.y`),
-    z: readFiniteNumber(value.z, `${label}.z`),
+    x: readFiniteNumber(value['x'], `${label}.x`),
+    y: readFiniteNumber(value['y'], `${label}.y`),
+    z: readFiniteNumber(value['z'], `${label}.z`),
   };
 }
 
@@ -51,40 +51,49 @@ export function parseCameraViewPreset(input: string | unknown): CameraViewPreset
     throw new Error('Invalid cameraViewPreset: expected object');
   }
 
-  if (value.version !== 1) {
+  if (value['version'] !== 1) {
     throw new Error('Invalid cameraViewPreset.version: expected 1');
   }
 
-  if (value.kind !== 'orbit') {
+  if (value['kind'] !== 'orbit') {
     throw new Error("Invalid cameraViewPreset.kind: expected 'orbit'");
   }
 
-  const target = readVector3Like(value.target, 'cameraViewPreset.target');
+  const target = readVector3Like(value['target'], 'cameraViewPreset.target');
 
-  if (!isRecord(value.spherical)) {
+  const spherical = value['spherical'];
+  if (!isRecord(spherical)) {
     throw new Error('Invalid cameraViewPreset.spherical: expected object');
   }
 
-  const radius = readFiniteNumber(value.spherical.radius, 'cameraViewPreset.spherical.radius');
-  const phi = readFiniteNumber(value.spherical.phi, 'cameraViewPreset.spherical.phi');
-  const theta = readFiniteNumber(value.spherical.theta, 'cameraViewPreset.spherical.theta');
+  const radius = readFiniteNumber(spherical['radius'], 'cameraViewPreset.spherical.radius');
+  const phi = readFiniteNumber(spherical['phi'], 'cameraViewPreset.spherical.phi');
+  const theta = readFiniteNumber(spherical['theta'], 'cameraViewPreset.spherical.theta');
 
-  const up = value.up === undefined ? undefined : readVector3Like(value.up, 'cameraViewPreset.up');
+  const rawUp = value['up'];
+  const rawTargetMode = value['targetMode'];
+  const rawRadiusMode = value['radiusMode'];
 
-  const targetMode =
-    value.targetMode === 'modelCenter' || value.targetMode === 'world' ? value.targetMode : undefined;
-  const radiusMode =
-    value.radiusMode === 'relativeToModelRadius' || value.radiusMode === 'absolute' ? value.radiusMode : undefined;
-
-  return {
+  const preset: CameraViewPreset = {
     version: 1,
     kind: 'orbit',
     target,
     spherical: { radius, phi, theta },
-    up,
-    targetMode,
-    radiusMode,
   };
+
+  if (rawUp !== undefined) {
+    preset.up = readVector3Like(rawUp, 'cameraViewPreset.up');
+  }
+
+  if (rawTargetMode === 'modelCenter' || rawTargetMode === 'world') {
+    preset.targetMode = rawTargetMode;
+  }
+
+  if (rawRadiusMode === 'relativeToModelRadius' || rawRadiusMode === 'absolute') {
+    preset.radiusMode = rawRadiusMode;
+  }
+
+  return preset;
 }
 
 export function exportCameraViewPreset(
@@ -157,4 +166,3 @@ export function applyCameraViewPreset(
     viewer.camera.lookAt(target);
   }
 }
-

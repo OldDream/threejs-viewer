@@ -1,4 +1,3 @@
-import React from 'react';
 import * as THREE from 'three';
 import { render, act } from '@testing-library/react';
 import { CameraScriptController } from './CameraScriptController';
@@ -116,5 +115,28 @@ describe('CameraScriptController', () => {
     expect(orbitControls.enabled).toBe(true);
     expect(orbitControls.update).toHaveBeenCalled();
   });
-});
 
+  it('reports JSON parse errors via onError instead of throwing in render', async () => {
+    const { viewerCore } = createViewerCoreStub();
+    const onError = vi.fn();
+
+    const viewerRef = {
+      current: {
+        getViewerCore: () => viewerCore as any,
+      },
+    } as any;
+
+    render(
+      <CameraScriptController
+        viewerRef={viewerRef}
+        mode="shot"
+        cameraShotJson="{invalid json"
+        onError={onError}
+      />
+    );
+
+    await act(async () => {});
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+  });
+});

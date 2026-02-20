@@ -39,6 +39,12 @@ function getViewerCoreFromRef(viewerRef: React.RefObject<ThreeViewerHandle | nul
   return handle.getViewerCore();
 }
 
+type ParseResult<T> = { value: T | null; error: Error | null };
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 export function CameraScriptController({
   viewerRef,
   mode = 'none',
@@ -57,17 +63,40 @@ export function CameraScriptController({
   const animationRef = useRef<CameraPathAnimationPlugin | null>(null);
   const applyPresetRafRef = useRef<number | null>(null);
 
-  const resolvedShot = useMemo(() => {
-    if (cameraShot) return cameraShot;
-    if (!cameraShotJson) return null;
-    return parseCameraShot(cameraShotJson);
+  const shotParseResult = useMemo<ParseResult<CameraShot>>(() => {
+    if (cameraShot) return { value: cameraShot, error: null };
+    if (!cameraShotJson) return { value: null, error: null };
+    try {
+      return { value: parseCameraShot(cameraShotJson), error: null };
+    } catch (error) {
+      return { value: null, error: toError(error) };
+    }
   }, [cameraShot, cameraShotJson]);
 
-  const resolvedPreset = useMemo(() => {
-    if (cameraViewPreset) return cameraViewPreset;
-    if (!cameraViewPresetJson) return null;
-    return parseCameraViewPreset(cameraViewPresetJson);
+  const presetParseResult = useMemo<ParseResult<CameraViewPreset>>(() => {
+    if (cameraViewPreset) return { value: cameraViewPreset, error: null };
+    if (!cameraViewPresetJson) return { value: null, error: null };
+    try {
+      return { value: parseCameraViewPreset(cameraViewPresetJson), error: null };
+    } catch (error) {
+      return { value: null, error: toError(error) };
+    }
   }, [cameraViewPreset, cameraViewPresetJson]);
+
+  const resolvedShot = shotParseResult.value;
+  const resolvedPreset = presetParseResult.value;
+
+  useEffect(() => {
+    if (shotParseResult.error) {
+      onError?.(shotParseResult.error);
+    }
+  }, [onError, shotParseResult.error]);
+
+  useEffect(() => {
+    if (presetParseResult.error) {
+      onError?.(presetParseResult.error);
+    }
+  }, [onError, presetParseResult.error]);
 
   useEffect(() => {
     let disposed = false;
@@ -138,7 +167,8 @@ export function CameraScriptController({
     if (!resolvedShot) return;
 
     try {
-      const config = toCameraPathAnimationConfig(resolvedShot, { loop });
+      const loopOptions = loop === undefined ? undefined : { loop };
+      const config = toCameraPathAnimationConfig(resolvedShot, loopOptions);
       animation.configure({
         ...config,
         autoPlay,
