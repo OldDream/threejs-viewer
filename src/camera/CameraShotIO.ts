@@ -43,7 +43,9 @@ export function parseCameraShot(input: string | unknown): CameraShot {
   }
 
   if ('kind' in value && (value['kind'] === 'orbit' || value['kind'] === 'first-person')) {
-    throw new Error('Invalid cameraShot: The provided JSON appears to be a CameraViewPreset (相机视角预设). Please paste it into the preset JSON input instead.');
+    if (!('pathPoints' in value) || !Array.isArray(value['pathPoints'])) {
+      throw new Error('Invalid cameraShot: The provided JSON appears to be a CameraViewPreset (相机视角预设). Please paste it into the preset JSON input instead.');
+    }
   }
 
   const loop = value['loop'];

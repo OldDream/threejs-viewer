@@ -9,6 +9,10 @@ export type CameraViewPresetV1 = {
   up?: { x: number; y: number; z: number };
   targetMode?: 'world' | 'modelCenter';
   radiusMode?: 'absolute' | 'relativeToModelRadius';
+  // Compatibility fields for CameraShot
+  loop?: boolean;
+  pathPoints?: { x: number; y: number; z: number }[];
+  segments?: unknown[];
 };
 
 export type CameraViewPreset = CameraViewPresetV1;
@@ -123,6 +127,11 @@ export function exportCameraViewPreset(
     up: { x: viewer.camera.up.x, y: viewer.camera.up.y, z: viewer.camera.up.z },
     targetMode: options?.targetMode ?? 'world',
     radiusMode,
+    
+    // Compatibility fields for CameraShot (1 keypoint)
+    loop: false,
+    pathPoints: [{ x: viewer.camera.position.x, y: viewer.camera.position.y, z: viewer.camera.position.z }],
+    segments: [],
   };
 }
 
