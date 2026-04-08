@@ -20,9 +20,7 @@ import { ModelUrlControl } from './components/controls/ModelUrlControl';
 import { PivotPointControl } from './components/controls/PivotPointControl';
 import { ZoomLimitsControl } from './components/controls/ZoomLimitsControl';
 import { GridControl } from './components/controls/GridControl';
-import { CameraModeControl, CameraFeatureMode } from './components/controls/CameraModeControl';
 import { CameraMovementControl } from './components/controls/CameraMovementControl';
-import { CameraAnimationControl } from './components/controls/CameraAnimationControl';
 import { ModelAnimationControl } from './components/controls/ModelAnimationControl';
 import { CameraPathDesignerControl } from './components/controls/CameraPathDesignerControl';
 import { CameraViewPresetControl } from './components/controls/CameraViewPresetControl';
@@ -39,7 +37,6 @@ import { usePivotControl } from './hooks/usePivotControl';
 import { useZoomControl } from './hooks/useZoomControl';
 import { useGridControl } from './hooks/useGridControl';
 import { useCameraMovement } from './hooks/useCameraMovement';
-import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { useCameraPathDesigner } from './hooks/useCameraPathDesigner';
 import { useModelAnimation } from './hooks/useModelAnimation';
 
@@ -101,7 +98,7 @@ const styles = {
 const Demo1: React.FC = () => {
   const viewerRef = useRef<ThreeViewerHandle>(null);
   const viewerCoreRef = useRef<ViewerCore | null>(null);
-  const [cameraMode, setCameraMode] = useState<CameraFeatureMode>('animation');
+
   const [viewerCoreRevision, setViewerCoreRevision] = useState(0);
   const [isViewPresetOpen, setIsViewPresetOpen] = useState(false);
   const [viewPresetJson, setViewPresetJson] = useState('');
@@ -118,9 +115,8 @@ const Demo1: React.FC = () => {
   const zoomControl = useZoomControl();
   const gridControl = useGridControl();
   const modelAnimation = useModelAnimation(viewerRef, modelLoader.loadResult);
-  const cameraAnimation = useCameraAnimation(viewerRef, modelLoader.loadResult);
   const cameraPathDesigner = useCameraPathDesigner(viewerRef, modelLoader.loadResult);
-  const isCameraLocked = cameraAnimation.isAnimating || cameraPathDesigner.isPlaying;
+  const isCameraLocked = cameraPathDesigner.isPlaying;
 	  const cameraMovement = useCameraMovement(viewerRef, isCameraLocked);
 
   const modelRadius = useMemo(() => {
@@ -176,13 +172,12 @@ const Demo1: React.FC = () => {
   }, [cameraPathDesigner]);
 
   useEffect(() => {
-    const shouldAllowDockResize = cameraMode === 'designer'
-      && cameraPathDesigner.panelState.isOpen
+    const shouldAllowDockResize = cameraPathDesigner.panelState.isOpen
       && cameraPathDesigner.panelState.isDocked;
     if (!shouldAllowDockResize) {
       dockResizeCleanupRef.current?.();
     }
-  }, [cameraMode, cameraPathDesigner.panelState.isDocked, cameraPathDesigner.panelState.isOpen]);
+  }, [cameraPathDesigner.panelState.isDocked, cameraPathDesigner.panelState.isOpen]);
 
   useEffect(() => {
     return () => {
@@ -191,35 +186,15 @@ const Demo1: React.FC = () => {
     };
   }, []);
 
-  const handleChangeCameraMode = useCallback((mode: CameraFeatureMode) => {
-    if (mode === cameraMode) return;
-    cameraAnimation.handleStop();
-    cameraPathDesigner.stop();
-    if (cameraPathDesigner.isEditing) {
-      cameraPathDesigner.toggleEditing();
-    }
-    setCameraMode(mode);
-  }, [
-    cameraAnimation.handleStop,
-    cameraMode,
-    cameraPathDesigner.isEditing,
-    cameraPathDesigner.stop,
-    cameraPathDesigner.toggleEditing,
-  ]);
+
 
   const handleViewerReady = useCallback((viewerCore: ViewerCore) => {
     viewerCoreRef.current = viewerCore;
     setViewerCoreRevision((v) => v + 1);
     cameraMovement.onViewerReady(viewerCore);
     modelAnimation.onViewerReady(viewerCore);
-    if (cameraMode === 'animation') {
-      cameraAnimation.onViewerReady(viewerCore);
-    } else {
-      cameraPathDesigner.onViewerReady(viewerCore);
-    }
+    cameraPathDesigner.onViewerReady(viewerCore);
   }, [
-    cameraAnimation.onViewerReady,
-    cameraMode,
     cameraMovement.onViewerReady,
     modelAnimation.onViewerReady,
     cameraPathDesigner.onViewerReady,
@@ -305,19 +280,10 @@ const Demo1: React.FC = () => {
     viewerCoreRevision,
   ]);
 
-  useEffect(() => {
-    const viewerCore = viewerCoreRef.current;
-    if (!viewerCore) return;
-    if (cameraMode === 'animation') {
-      cameraAnimation.onViewerReady(viewerCore);
-    } else {
-      cameraPathDesigner.onViewerReady(viewerCore);
-    }
-  }, [cameraAnimation.onViewerReady, cameraMode, cameraPathDesigner.onViewerReady]);
+
 
   // Reset handler
   const handleReset = () => {
-    cameraAnimation.handleStop();
     cameraPathDesigner.reset();
     modelLoader.handleReset();
     pivotControl.handleReset();
@@ -429,8 +395,6 @@ const Demo1: React.FC = () => {
             onToggleAutoPlay={modelAnimation.toggleAutoPlay}
           />
 
-          <CameraModeControl mode={cameraMode} onChangeMode={handleChangeCameraMode} />
-
           <CameraMovementControl
             enabled={cameraMovement.enabled}
             speed={cameraMovement.speed}
@@ -441,31 +405,22 @@ const Demo1: React.FC = () => {
             onToggleCSMode={cameraMovement.setIsCSMode}
           />
 
-          {cameraMode === 'animation' ? (
-            <CameraAnimationControl
-              isAnimating={cameraAnimation.isAnimating}
-              viewMode={cameraAnimation.viewMode}
-              onToggle={cameraAnimation.handleToggle}
-              onChangeViewMode={cameraAnimation.setViewMode}
-            />
-          ) : (
-            <CameraPathDesignerControl
-              isEditing={cameraPathDesigner.isEditing}
-              isPlaying={cameraPathDesigner.isPlaying}
-              loop={cameraPathDesigner.loop}
-              panelOpen={cameraPathDesigner.panelState.isOpen}
-              pointCount={cameraPathDesigner.pointCount}
-              isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
-              onTogglePanel={cameraPathDesigner.toggleOpen}
-              onToggleEditing={cameraPathDesigner.toggleEditing}
-              onPlay={cameraPathDesigner.play}
-              onStop={cameraPathDesigner.stop}
-              onToggleLoop={cameraPathDesigner.setLoop}
-              onAddPoint={cameraPathDesigner.addPoint}
-              onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
-              onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
-            />
-          )}
+          <CameraPathDesignerControl
+            isEditing={cameraPathDesigner.isEditing}
+            isPlaying={cameraPathDesigner.isPlaying}
+            loop={cameraPathDesigner.loop}
+            panelOpen={cameraPathDesigner.panelState.isOpen}
+            pointCount={cameraPathDesigner.pointCount}
+            isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
+            onTogglePanel={cameraPathDesigner.toggleOpen}
+            onToggleEditing={cameraPathDesigner.toggleEditing}
+            onPlay={cameraPathDesigner.play}
+            onStop={cameraPathDesigner.stop}
+            onToggleLoop={cameraPathDesigner.setLoop}
+            onAddPoint={cameraPathDesigner.addPoint}
+            onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
+            onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
+          />
 
           <CameraViewPresetControl onOpen={() => setIsViewPresetOpen(true)} />
 
@@ -504,7 +459,7 @@ const Demo1: React.FC = () => {
             />
           </div>
 
-          {cameraMode === 'designer' && cameraPathDesigner.panelState.isOpen && cameraPathDesigner.panelState.isDocked ? (
+          {cameraPathDesigner.panelState.isOpen && cameraPathDesigner.panelState.isDocked ? (
             <div
               style={{
                 ...styles.dockWrapper,
@@ -566,7 +521,7 @@ const Demo1: React.FC = () => {
         </div>
       </DemoMain>
 
-      {cameraMode === 'designer' && cameraPathDesigner.panelState.isOpen && !cameraPathDesigner.panelState.isDocked ? (
+      {cameraPathDesigner.panelState.isOpen && !cameraPathDesigner.panelState.isDocked ? (
         <CameraPathEditorFloatingWindow
           rect={cameraPathDesigner.panelState.floatingRect}
           onChangeRect={cameraPathDesigner.setFloatingRect}
