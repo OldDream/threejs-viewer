@@ -408,18 +408,9 @@ const Demo1: React.FC = () => {
           <CameraPathDesignerControl
             isEditing={cameraPathDesigner.isEditing}
             isPlaying={cameraPathDesigner.isPlaying}
-            loop={cameraPathDesigner.loop}
             panelOpen={cameraPathDesigner.panelState.isOpen}
             pointCount={cameraPathDesigner.pointCount}
-            isPickTargetArmed={cameraPathDesigner.isPickTargetArmed}
             onTogglePanel={cameraPathDesigner.toggleOpen}
-            onToggleEditing={cameraPathDesigner.toggleEditing}
-            onPlay={cameraPathDesigner.play}
-            onStop={cameraPathDesigner.stop}
-            onToggleLoop={cameraPathDesigner.setLoop}
-            onAddPoint={cameraPathDesigner.addPoint}
-            onSetTargetToCenter={cameraPathDesigner.setTargetToCenter}
-            onPickTargetOnce={cameraPathDesigner.pickTargetOnce}
           />
 
           <CameraViewPresetControl onOpen={() => setIsViewPresetOpen(true)} />

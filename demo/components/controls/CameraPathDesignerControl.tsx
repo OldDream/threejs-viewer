@@ -23,16 +23,7 @@ interface CameraPathDesignerControlProps {
   isPlaying: boolean;
   panelOpen: boolean;
   pointCount: number;
-  loop: boolean;
-  isPickTargetArmed: boolean;
   onTogglePanel: () => void;
-  onToggleEditing: () => void;
-  onPlay: () => void;
-  onStop: () => void;
-  onToggleLoop: (value: boolean) => void;
-  onAddPoint: () => void;
-  onSetTargetToCenter: () => void;
-  onPickTargetOnce: () => void;
 }
 
 export function CameraPathDesignerControl({
@@ -40,19 +31,8 @@ export function CameraPathDesignerControl({
   isPlaying,
   panelOpen,
   pointCount,
-  loop,
-  isPickTargetArmed,
   onTogglePanel,
-  onToggleEditing,
-  onPlay,
-  onStop,
-  onToggleLoop,
-  onAddPoint,
-  onSetTargetToCenter,
-  onPickTargetOnce,
 }: CameraPathDesignerControlProps) {
-  const canEditPath = isEditing && !isPlaying;
-
   return (
     <ControlSection title="相机路径设计器 (Camera Path Designer)">
       <button
@@ -66,48 +46,11 @@ export function CameraPathDesignerControl({
         {panelOpen ? '隐藏路径编辑器' : '打开路径编辑器'}
       </button>
 
-      <div style={{ ...styles.row, marginTop: spacing.md }}>
-        <button type="button" onClick={onToggleEditing} disabled={isPlaying} style={themeStyles.buttonSecondary}>
-          {isEditing ? '编辑: 开 (ON)' : '编辑: 关 (OFF)'}
-        </button>
-        <button
-          type="button"
-          onClick={isPlaying ? onStop : onPlay}
-          disabled={pointCount < 2}
-          style={{
-            ...themeStyles.buttonSecondary,
-            backgroundColor: isPlaying ? colors.button.primaryHover : colors.button.success,
-          }}
-        >
-          {isPlaying ? '停止' : '播放'}
-        </button>
+      <div style={{ ...styles.hint, marginTop: spacing.md }}>
+        状态: {isPlaying ? '播放中' : (isEditing ? '编辑中' : '空闲')} | 关键点数: {pointCount}
       </div>
-
-      <div style={styles.row}>
-        <button type="button" onClick={onAddPoint} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          添加关键点 (Point)
-        </button>
-        <label style={{ ...themeStyles.label, marginBottom: 0, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
-          <input
-            type="checkbox"
-            checked={loop}
-            onChange={(e) => onToggleLoop(e.target.checked)}
-          />
-          循环
-        </label>
-      </div>
-
-      <div style={styles.row}>
-        <button type="button" onClick={onSetTargetToCenter} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          看向中心
-        </button>
-        <button type="button" onClick={onPickTargetOnce} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          {isPickTargetArmed ? '选取目标点…' : '选取目标点'}
-        </button>
-      </div>
-
       <div style={styles.hint}>
-        关键点数 (Points): {pointCount}。高级段落时间和插值设置在独立的编辑器面板中。
+        详细的路径编辑、播放控制与相关设置，请在独立面板中进行操作。
       </div>
     </ControlSection>
   );
