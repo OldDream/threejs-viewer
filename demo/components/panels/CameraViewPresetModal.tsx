@@ -101,7 +101,7 @@ export function CameraViewPresetModal({
           <button
             type="button"
             onClick={onClose}
-            style={{ ...themeStyles.buttonSecondary, padding: '4px 8px' }}
+            style={{ ...themeStyles.buttonSecondary, padding: '4px 8px', width: 'auto' }}
           >
             ✕
           </button>
