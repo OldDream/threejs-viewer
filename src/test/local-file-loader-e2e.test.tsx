@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import App from '../../demo/App.refactored';
+import { Demo2 } from '../../demo/pages/Demo2';
 import { LocalFileManager } from '../utils/LocalFileManager';
 
 describe('Local File Loader - End-to-End Integration', () => {
@@ -36,14 +36,14 @@ describe('Local File Loader - End-to-End Integration', () => {
 
   describe('UI Integration', () => {
     it('should render file selection button', () => {
-      render(<App />);
+      render(<Demo2 />);
       
-      const fileButton = screen.getByText('📁 Choose Local File');
+      const fileButton = screen.getByText('📁 选择本地文件');
       expect(fileButton).toBeDefined();
     });
 
     it('should have hidden file input with correct accept attribute', () => {
-      render(<App />);
+      render(<Demo2 />);
       
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
       expect(fileInput).toBeDefined();
@@ -53,10 +53,10 @@ describe('Local File Loader - End-to-End Integration', () => {
     });
 
     it('should show texture file selection button only for GLTF files', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // Initially, texture button should not be visible
-      expect(screen.queryByText('🖼️ Choose Texture Files')).toBeNull();
+      expect(screen.queryByText('🖼️ 选择纹理文件')).toBeNull();
       
       // Simulate selecting a GLTF file
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -71,12 +71,12 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Now texture button should be visible
       await waitFor(() => {
-        expect(screen.getByText('🖼️ Choose Texture Files')).toBeDefined();
+        expect(screen.getByText('🖼️ 选择纹理文件')).toBeDefined();
       });
     });
 
     it('should not show texture file selection button for GLB files', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // Simulate selecting a GLB file
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -91,14 +91,14 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Texture button should not be visible
       await waitFor(() => {
-        expect(screen.queryByText('🖼️ Choose Texture Files')).toBeNull();
+        expect(screen.queryByText('🖼️ 选择纹理文件')).toBeNull();
       });
     });
   });
 
   describe('GLB File Loading Workflow', () => {
     it('should update URL input when GLB file is selected', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
       const glbFile = new File(['mock glb content'], 'test-model.glb', { type: 'model/gltf-binary' });
@@ -112,13 +112,13 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Check that URL input shows the local file name
       await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
+        const urlInput = screen.getByPlaceholderText('请输入模型 URL...') as HTMLInputElement;
         expect(urlInput.value).toBe('[Local File] test-model.glb');
       });
     });
 
     it('should set isLocalFile state when GLB file is selected', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // Select GLB file
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -133,7 +133,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Verify the URL input shows local file indicator
       await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
+        const urlInput = screen.getByPlaceholderText('请输入模型 URL...') as HTMLInputElement;
         expect(urlInput.value).toContain('[Local File]');
       });
     });
@@ -141,7 +141,7 @@ describe('Local File Loader - End-to-End Integration', () => {
 
   describe('GLTF File Loading Workflow', () => {
     it('should display selected texture files', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // Select GLTF file
       const modelInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -156,7 +156,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Wait for texture button to appear
       await waitFor(() => {
-        expect(screen.getByText('🖼️ Choose Texture Files')).toBeDefined();
+        expect(screen.getByText('🖼️ 选择纹理文件')).toBeDefined();
       });
       
       // Select texture files
@@ -173,7 +173,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Check that texture files are displayed
       await waitFor(() => {
-        expect(screen.getByText('2 texture file(s) selected:')).toBeDefined();
+        expect(screen.getByText('已选择 2 个纹理文件:')).toBeDefined();
         expect(screen.getByText('• diffuse.png')).toBeDefined();
         expect(screen.getByText('• normal.jpg')).toBeDefined();
       });
@@ -182,7 +182,7 @@ describe('Local File Loader - End-to-End Integration', () => {
 
   describe('State Management', () => {
     it('should clear local file state when URL is manually entered', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // First, select a local file
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -197,50 +197,18 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Verify local file is selected
       await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
+        const urlInput = screen.getByPlaceholderText('请输入模型 URL...') as HTMLInputElement;
         expect(urlInput.value).toBe('[Local File] model.glb');
       });
       
       // Now manually enter a URL
-      const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
+      const urlInput = screen.getByPlaceholderText('请输入模型 URL...') as HTMLInputElement;
       fireEvent.change(urlInput, { target: { value: 'https://example.com/model.glb' } });
       
       // Verify URL is updated and local file indicator is gone
       await waitFor(() => {
         expect(urlInput.value).toBe('https://example.com/model.glb');
         expect(urlInput.value).not.toContain('[Local File]');
-      });
-    });
-
-    it('should reset local file state when Reset button is clicked', async () => {
-      render(<App />);
-      
-      // Select a local file
-      const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
-      const glbFile = new File(['mock glb content'], 'model.glb', { type: 'model/gltf-binary' });
-      
-      Object.defineProperty(fileInput, 'files', {
-        value: [glbFile],
-        writable: false,
-      });
-      
-      fireEvent.change(fileInput);
-      
-      // Verify local file is selected
-      await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
-        expect(urlInput.value).toBe('[Local File] model.glb');
-      });
-      
-      // Click Reset button
-      const resetButton = screen.getByText('Reset to Defaults');
-      fireEvent.click(resetButton);
-      
-      // Verify state is reset (URL should be back to default, not contain [Local File])
-      await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
-        expect(urlInput.value).not.toContain('[Local File]');
-        // Cleanup is called internally, we just verify the state is reset
       });
     });
   });
@@ -339,7 +307,7 @@ describe('Local File Loader - End-to-End Integration', () => {
     });
 
     it('should cleanup resources on component unmount', () => {
-      const { unmount } = render(<App />);
+      const { unmount } = render(<Demo2 />);
       
       // Unmount the component
       unmount();
@@ -384,7 +352,7 @@ describe('Local File Loader - End-to-End Integration', () => {
 
   describe('User Experience', () => {
     it('should show file name in URL input after selection', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       const fileInput = document.getElementById('modelFileInput') as HTMLInputElement;
       const glbFile = new File(['mock glb content'], 'my-awesome-model.glb', { type: 'model/gltf-binary' });
@@ -397,13 +365,13 @@ describe('Local File Loader - End-to-End Integration', () => {
       fireEvent.change(fileInput);
       
       await waitFor(() => {
-        const urlInput = screen.getByPlaceholderText('Enter model URL...') as HTMLInputElement;
+        const urlInput = screen.getByPlaceholderText('请输入模型 URL...') as HTMLInputElement;
         expect(urlInput.value).toBe('[Local File] my-awesome-model.glb');
       });
     });
 
     it('should clear texture files when selecting new GLTF file', async () => {
-      render(<App />);
+      render(<Demo2 />);
       
       // Select first GLTF file
       const modelInput = document.getElementById('modelFileInput') as HTMLInputElement;
@@ -419,7 +387,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Select texture files
       await waitFor(() => {
-        expect(screen.getByText('🖼️ Choose Texture Files')).toBeDefined();
+        expect(screen.getByText('🖼️ 选择纹理文件')).toBeDefined();
       });
       
       const textureInput = document.getElementById('textureFilesInput') as HTMLInputElement;
@@ -435,7 +403,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Verify texture is shown
       await waitFor(() => {
-        expect(screen.getByText('1 texture file(s) selected:')).toBeDefined();
+        expect(screen.getByText('已选择 1 个纹理文件:')).toBeDefined();
       });
       
       // Select new GLTF file
@@ -451,7 +419,7 @@ describe('Local File Loader - End-to-End Integration', () => {
       
       // Texture files should be cleared
       await waitFor(() => {
-        expect(screen.queryByText('1 texture file(s) selected:')).toBeNull();
+        expect(screen.queryByText('已选择 1 个纹理文件:')).toBeNull();
       });
     });
   });

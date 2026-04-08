@@ -1,5 +1,15 @@
 import React, { forwardRef } from 'react';
-import { ThreeViewer, ThreeViewerHandle, GridConfig, ModelLoadResult } from '../../src';
+import {
+  ModelViewer,
+  type ModelViewerCameraScript,
+  type ModelViewerErrorContext,
+  type ModelViewerModel,
+  ThreeViewer,
+  ThreeViewerHandle,
+  GridConfig,
+  ModelLoadResult,
+  ViewerCore,
+} from '../../src';
 import { colors } from '../styles/theme';
 
 const styles = {
@@ -30,35 +40,70 @@ const styles = {
 };
 
 interface DemoViewerProps {
+  model?: ModelViewerModel | null;
+  cameraScript?: ModelViewerCameraScript;
   modelUrl?: string;
   pivotPoint?: { x: number; y: number; z: number };
   zoomLimits?: { min?: number; max?: number };
   grid: GridConfig;
   onLoad: (result: ModelLoadResult) => void;
-  onError: (error: Error) => void;
+  onError: ((error: Error, context: ModelViewerErrorContext) => void) | ((error: Error) => void);
   onLoadingChange: (loading: boolean) => void;
-  onViewerReady?: NonNullable<React.ComponentProps<typeof ThreeViewer>['onViewerReady']>;
+  onViewerReady?: (viewerCore: ViewerCore) => void;
 }
 
 export const DemoViewer = forwardRef<ThreeViewerHandle, DemoViewerProps>(
-  ({ modelUrl, pivotPoint, zoomLimits, grid, onLoad, onError, onLoadingChange, onViewerReady }, ref) => {
+  (
+    {
+      model,
+      cameraScript,
+      modelUrl,
+      pivotPoint,
+      zoomLimits,
+      grid,
+      onLoad,
+      onError,
+      onLoadingChange,
+      onViewerReady,
+    },
+    ref
+  ) => {
+    const isModelViewerMode = model !== undefined || cameraScript !== undefined;
+
     return (
       <div style={styles.viewerContainer}>
-        <ThreeViewer
-          ref={ref}
-          {...(modelUrl ? { modelUrl } : {})}
-          {...(pivotPoint && { pivotPoint })}
-          {...(zoomLimits && { zoomLimits })}
-          grid={grid}
-          backgroundColor={0x545454}
-          onLoad={onLoad}
-          onError={onError}
-          onLoadingChange={onLoadingChange}
-          {...(onViewerReady ? { onViewerReady } : {})}
-          style={{ width: '100%', height: '100%' }}
-        />
+        {isModelViewerMode ? (
+          <ModelViewer
+            ref={ref}
+            {...(model ? { model } : {})}
+            {...(cameraScript ? { cameraScript } : {})}
+            {...(pivotPoint ? { pivotPoint } : {})}
+            {...(zoomLimits ? { zoomLimits } : {})}
+            grid={grid}
+            backgroundColor={0x545454}
+            onLoad={onLoad}
+            onError={onError as (error: Error, context: ModelViewerErrorContext) => void}
+            onLoadingChange={onLoadingChange}
+            {...(onViewerReady ? { onViewerReady } : {})}
+            style={{ width: '100%', height: '100%' }}
+          />
+        ) : (
+          <ThreeViewer
+            ref={ref}
+            {...(modelUrl ? { modelUrl } : {})}
+            {...(pivotPoint ? { pivotPoint } : {})}
+            {...(zoomLimits ? { zoomLimits } : {})}
+            grid={grid}
+            backgroundColor={0x545454}
+            onLoad={onLoad}
+            onError={onError as (error: Error) => void}
+            onLoadingChange={onLoadingChange}
+            {...(onViewerReady ? { onViewerReady } : {})}
+            style={{ width: '100%', height: '100%' }}
+          />
+        )}
 
-        {!modelUrl ? (
+        {!model && !modelUrl ? (
           <div style={styles.overlay}>
             <div style={styles.overlayText}>No model loaded</div>
             <div style={styles.overlayHint}>

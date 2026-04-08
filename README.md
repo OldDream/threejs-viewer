@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 🎨 **React 组件** - 易用的 `<ThreeViewer />` 组件，声明式 3D 查看器
+- 🎨 **React 组件** - 易用的 `<ThreeViewer />` 与 `<ModelViewer />` 组件，覆盖底层控制和开箱即用场景
 - � **相机脚本控制器** - `<CameraScriptController />` 组件，支持 Shot 动画和 View Preset 应用
 - �📦 **GLTF/GLB 支持** - 加载 GLTF 和 GLB 格式的 3D 模型，含动画播放
 - 🎮 **轨道控制** - 旋转、缩放和平移模型
@@ -36,6 +36,25 @@ function App() {
       style={{ width: '100%', height: '500px' }}
       onLoad={(result) => console.log('模型加载完成:', result)}
       onError={(error) => console.error('错误:', error)}
+    />
+  );
+}
+```
+
+### 推荐用法：ModelViewer
+
+`ModelViewer` 是面向业务接入的高层组件，直接接收 `model + cameraScript` 两组参数，内部会自动处理本地文件解析、模型加载和相机脚本接入。
+
+```tsx
+import { ModelViewer } from 'threejs-viewer';
+
+function App() {
+  return (
+    <ModelViewer
+      model={{ type: 'url', url: 'https://example.com/model.glb' }}
+      cameraScript={{ mode: 'none' }}
+      grid={{ visible: true, size: 20, divisions: 20, plane: 'XZ', showAxes: true }}
+      style={{ width: '100%', height: '500px' }}
     />
   );
 }
@@ -103,6 +122,23 @@ function App() {
   );
 }
 ```
+
+## ModelViewer 属性
+
+| 属性 | 类型 | 描述 |
+|------|------|------|
+| `model` | `ModelViewerModel \| null` | 模型来源，支持 URL、本地单文件和本地文件夹 |
+| `cameraScript` | `ModelViewerCameraScript` | 相机脚本，支持 `none`、`shot`、`preset` |
+| `grid` | `GridConfig` | 网格和坐标轴辅助线配置 |
+| `pivotPoint` | `{ x, y, z }` | 自定义旋转中心点 |
+| `zoomLimits` | `{ min?, max? }` | 相机缩放距离限制 |
+| `backgroundColor` | `number \| string` | 场景背景色 |
+| `className` | `string` | 容器的 CSS 类名 |
+| `style` | `CSSProperties` | 容器的内联样式 |
+| `onLoad` | `(result: ModelLoadResult) => void` | 模型加载成功时的回调 |
+| `onLoadingChange` | `(loading: boolean) => void` | 模型源准备或加载状态变化时的回调 |
+| `onError` | `(error: Error, context: { stage }) => void` | 错误回调，`stage` 为 `model-source`、`model-load` 或 `camera-script` |
+| `ref` | `Ref<ThreeViewerHandle>` | 可选，转发到底层 `ThreeViewer` 的命令式句柄 |
 
 ## ThreeViewer 属性
 
@@ -469,7 +505,7 @@ npm run dev:demo
 演示包含两个页面（通过 URL hash 切换）：
 
 - **Demo1**（默认，`#/`）— 完整功能展示，包含所有控制面板（模型加载、旋转中心、缩放限制、网格控制、模型动画、相机动画/路径设计器、视角预设弹窗等）
-- **Demo2**（`#/demo2`）— 高封装示例，展示如何使用 `CameraScriptController` 组件以最少代码集成相机 Shot 动画和 View Preset
+- **Demo2**（`#/demo2`）— 高层 `ModelViewer` 示例页，展示如何用 `model + cameraScript` 组合 URL、本地文件、本地文件夹和相机脚本
 
 ### 运行测试
 

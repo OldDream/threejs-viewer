@@ -78,6 +78,14 @@ export {
 } from './components/ThreeViewer';
 
 export {
+  ModelViewer,
+  type ModelViewerCameraScript,
+  type ModelViewerErrorContext,
+  type ModelViewerModel,
+  type ModelViewerProps,
+} from './components/ModelViewer';
+
+export {
   CameraScriptController,
   type CameraScriptControllerProps,
   type CameraScriptMode,

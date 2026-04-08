@@ -11,36 +11,71 @@ export function useModelAnimation(
   loadResult: ModelLoadResult | null
 ) {
   const pluginRef = useRef<ModelAnimationPlugin | null>(null);
+  const viewerCoreRef = useRef<ViewerCore | null>(null);
   const [autoPlay, setAutoPlay] = useState(true);
 
   const clipCount = useMemo(() => loadResult?.animations?.length ?? 0, [loadResult]);
 
-  const onViewerReady = useCallback((viewerCore: ViewerCore) => {
-    const existing = viewerCore.plugins.get<ModelAnimationPlugin>('ModelAnimationPlugin');
-    const plugin = existing ?? new ModelAnimationPlugin();
+  const attachToViewerCore = useCallback(
+    (viewerCore: ViewerCore) => {
+      viewerCoreRef.current = viewerCore;
 
-    if (!existing && !viewerCore.plugins.has(plugin.name)) {
-      viewerCore.plugins.register(plugin);
-    }
+      const existing = viewerCore.plugins.get<ModelAnimationPlugin>('ModelAnimationPlugin');
+      const plugin = existing ?? new ModelAnimationPlugin();
 
-    pluginRef.current = plugin;
-    plugin.configure({ autoPlay });
+      if (!existing && !viewerCore.plugins.has(plugin.name)) {
+        viewerCore.plugins.register(plugin);
+      }
 
-    if (loadResult) {
-      plugin.setSource(loadResult.model, loadResult.animations ?? []);
-    }
-  }, [autoPlay, loadResult]);
+      pluginRef.current = plugin;
+      plugin.configure({ autoPlay });
+
+      if (loadResult) {
+        plugin.setSource(loadResult.model, loadResult.animations ?? []);
+      }
+    },
+    [autoPlay, loadResult]
+  );
+
+  useEffect(() => {
+    let disposed = false;
+    let raf = 0;
+
+    const attachPlugin = () => {
+      if (disposed) {
+        return;
+      }
+
+      const viewerCore = viewerRef.current?.getViewerCore();
+      if (!viewerCore) {
+        raf = window.requestAnimationFrame(attachPlugin);
+        return;
+      }
+
+      attachToViewerCore(viewerCore);
+    };
+
+    attachPlugin();
+
+    return () => {
+      disposed = true;
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+      }
+    };
+  }, [attachToViewerCore, viewerRef]);
 
   useEffect(() => {
     return () => {
-      const viewerCore = viewerRef.current?.getViewerCore();
+      const viewerCore = viewerCoreRef.current;
       const plugin = pluginRef.current;
       if (viewerCore && plugin) {
         viewerCore.plugins.unregister(plugin.name);
       }
+      viewerCoreRef.current = null;
       pluginRef.current = null;
     };
-  }, [viewerRef]);
+  }, []);
 
   useEffect(() => {
     const plugin = pluginRef.current;
@@ -81,7 +116,7 @@ export function useModelAnimation(
     toggleAutoPlay,
     clipCount,
     hasAnimations: clipCount > 0,
-    onViewerReady,
+    onViewerReady: attachToViewerCore,
     stopAndReset,
   };
 }
