@@ -44,7 +44,7 @@ export function ZoomLimitsControl({
   onApply,
 }: ZoomLimitsControlProps) {
   return (
-    <ControlSection title="Zoom Limits">
+    <ControlSection title="缩放限制 (Zoom Limits)">
       <div style={styles.inputGroup}>
         <label style={styles.checkboxLabel}>
           <input
@@ -52,13 +52,13 @@ export function ZoomLimitsControl({
             checked={useZoomLimits}
             onChange={(e) => onToggle(e.target.checked)}
           />
-          Use Custom Zoom Limits
+          使用自定义缩放限制
         </label>
       </div>
       
       <div style={{ ...styles.row, opacity: useZoomLimits ? 1 : 0.5 }}>
         <div style={styles.col}>
-          <label style={themeStyles.label}>Min Distance</label>
+          <label style={themeStyles.label}>最小距离 (Min)</label>
           <input
             type="number"
             value={zoomMin}
@@ -70,7 +70,7 @@ export function ZoomLimitsControl({
           />
         </div>
         <div style={styles.col}>
-          <label style={themeStyles.label}>Max Distance</label>
+          <label style={themeStyles.label}>最大距离 (Max)</label>
           <input
             type="number"
             value={zoomMax}
@@ -91,7 +91,7 @@ export function ZoomLimitsControl({
           backgroundColor: colors.button.secondary,
         }}
       >
-        Apply Zoom Limits
+        应用缩放限制
       </button>
     </ControlSection>
   );

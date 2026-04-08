@@ -59,27 +59,27 @@ interface StatusDisplayProps {
 
 export function StatusDisplay({ isLoading, error, loadResult, modelUrl }: StatusDisplayProps) {
   return (
-    <ControlSection title="Status">
+    <ControlSection title="状态">
       <div style={styles.statusContainer}>
         {isLoading && (
           <div style={styles.loadingIndicator}>
             <div style={styles.spinner} />
-            <span>Loading model...</span>
+            <span>加载模型中...</span>
           </div>
         )}
         
         {error && (
           <div style={styles.errorMessage}>
-            <strong>Error:</strong> {error.message}
+            <strong>错误:</strong> {error.message}
           </div>
         )}
         
         {!isLoading && !error && loadResult && (
           <div>
-            <div style={styles.successMessage}>✓ Model loaded successfully</div>
+            <div style={styles.successMessage}>✓ 模型加载成功</div>
             <div style={styles.modelInfo}>
               <div>
-                Center: ({loadResult.center.x.toFixed(2)}, {loadResult.center.y.toFixed(2)}, {loadResult.center.z.toFixed(2)})
+                中心坐标: ({loadResult.center.x.toFixed(2)}, {loadResult.center.y.toFixed(2)}, {loadResult.center.z.toFixed(2)})
               </div>
             </div>
           </div>
@@ -87,7 +87,7 @@ export function StatusDisplay({ isLoading, error, loadResult, modelUrl }: Status
         
         {!isLoading && !error && !loadResult && !modelUrl && (
           <div style={styles.idleMessage}>
-            Enter a model URL and click "Load Model" to begin
+            请输入模型 URL 并点击 "加载模型" 开始
           </div>
         )}
       </div>

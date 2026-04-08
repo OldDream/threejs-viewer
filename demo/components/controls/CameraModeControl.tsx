@@ -46,7 +46,7 @@ interface CameraModeControlProps {
 
 export function CameraModeControl({ mode, onChangeMode }: CameraModeControlProps) {
   return (
-    <ControlSection title="Camera Mode">
+    <ControlSection title="相机模式 (Camera Mode)">
       <div style={styles.container}>
         <button
           style={{
@@ -55,7 +55,7 @@ export function CameraModeControl({ mode, onChangeMode }: CameraModeControlProps
           }}
           onClick={() => onChangeMode('animation')}
         >
-          Path Animation
+          路径动画 (Path Animation)
         </button>
         <button
           style={{
@@ -64,11 +64,11 @@ export function CameraModeControl({ mode, onChangeMode }: CameraModeControlProps
           }}
           onClick={() => onChangeMode('designer')}
         >
-          Path Designer
+          路径设计器 (Path Designer)
         </button>
       </div>
       <div style={styles.hint}>
-        Switching modes stops any active preview/animation.
+        切换模式会停止当前所有预览/动画。
       </div>
     </ControlSection>
   );

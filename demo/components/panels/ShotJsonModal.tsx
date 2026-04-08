@@ -103,7 +103,7 @@ export function ShotJsonModal({
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h3 style={styles.title}>Shot JSON Data</h3>
+          <h3 style={styles.title}>镜头片段 JSON 数据 (Shot JSON)</h3>
           <button
             type="button"
             onClick={onClose}
@@ -124,13 +124,13 @@ export function ShotJsonModal({
 
         <div style={styles.footer}>
           <button type="button" onClick={onExportShot} style={themeStyles.buttonSecondary}>
-            Copy/Export
+            复制/导出
           </button>
           <button type="button" onClick={onImportShot} style={themeStyles.buttonSecondary}>
-            Import
+            导入
           </button>
           <button type="button" onClick={onClose} style={themeStyles.button}>
-            Done
+            完成
           </button>
         </div>
       </div>

@@ -118,19 +118,19 @@ export function SegmentInspector({
 
   return (
     <div>
-      <div style={styles.sectionTitle}>Segment Inspector</div>
+      <div style={styles.sectionTitle}>段落检查器 (Segment Inspector)</div>
       <div style={styles.card}>
         {segment && selectedSegmentIndex !== null ? (
           <>
-            <div style={styles.intro}>Adjust this segment without affecting the rest of the path.</div>
+            <div style={styles.intro}>调整此段落而不会影响路径的其余部分。</div>
 
             <div style={styles.badgeRow}>
-              <span style={styles.segmentBadge}>Segment #{selectedSegmentIndex + 1}</span>
-              <span style={styles.playbackBadge}>{isPlaying ? 'Playback locked' : 'Editable'}</span>
+              <span style={styles.segmentBadge}>段落 #{selectedSegmentIndex + 1}</span>
+              <span style={styles.playbackBadge}>{isPlaying ? '播放锁定' : '可编辑状态'}</span>
             </div>
 
             <div style={styles.group}>
-              <label style={themeStyles.label}>Duration (s)</label>
+              <label style={themeStyles.label}>持续时间 (s)</label>
               <input
                 type="number"
                 min={0.05}
@@ -147,7 +147,7 @@ export function SegmentInspector({
             </div>
 
             <div style={styles.group}>
-              <label style={themeStyles.label}>Interpolation</label>
+              <label style={themeStyles.label}>插值方式 (Interpolation)</label>
               <select
                 value={interpolationMode}
                 disabled={isPlaying}
@@ -164,14 +164,14 @@ export function SegmentInspector({
                 }}
                 style={themeStyles.input}
               >
-                <option value="inherit">Inherit ({defaults.interpolation})</option>
-                <option value="linear">Linear</option>
-                <option value="curve">Curve</option>
+                <option value="inherit">继承 ({defaults.interpolation})</option>
+                <option value="linear">线性 (Linear)</option>
+                <option value="curve">光滑曲线 (Curve)</option>
               </select>
             </div>
 
             <div style={styles.group}>
-              <label style={themeStyles.label}>Easing</label>
+              <label style={themeStyles.label}>缓动效果 (Easing)</label>
               <select
                 value={easingMode}
                 disabled={isPlaying}
@@ -196,10 +196,10 @@ export function SegmentInspector({
                 style={themeStyles.input}
               >
                 <option value="inherit">
-                  Inherit ({defaults.easing.type === 'linear' ? 'linear' : `smoothstep(${defaults.easing.strength.toFixed(2)})`})
+                  继承 ({defaults.easing.type === 'linear' ? 'linear' : `smoothstep(${defaults.easing.strength.toFixed(2)})`})
                 </option>
-                <option value="linear">Linear</option>
-                <option value="smoothstep">Smoothstep</option>
+                <option value="linear">线性 (Linear)</option>
+                <option value="smoothstep">平滑过渡 (Smoothstep)</option>
               </select>
 
               {easingMode === 'smoothstep' ? (
@@ -223,13 +223,13 @@ export function SegmentInspector({
                     }}
                     style={{ width: '100%', marginTop: spacing.sm }}
                   />
-                  <div style={styles.hint}>Smoothstep Strength: {smoothstepStrength.toFixed(2)}</div>
+                  <div style={styles.hint}>平滑过渡强度: {smoothstepStrength.toFixed(2)}</div>
                 </>
               ) : null}
             </div>
           </>
         ) : (
-          <div style={styles.hint}>Select a segment in timeline to edit.</div>
+          <div style={styles.hint}>在时间轴中选择一个段落进行编辑。</div>
         )}
       </div>
     </div>

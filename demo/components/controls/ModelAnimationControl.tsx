@@ -36,7 +36,7 @@ export function ModelAnimationControl({
   onToggleAutoPlay,
 }: ModelAnimationControlProps) {
   return (
-    <ControlSection title="Model Animation">
+    <ControlSection title="模型动画 (Model Animation)">
       <div style={styles.inputGroup}>
         <label style={styles.checkboxLabel}>
           <input
@@ -45,12 +45,12 @@ export function ModelAnimationControl({
             onChange={onToggleAutoPlay}
             disabled={!hasAnimations}
           />
-          AutoPlay
+          自动播放 (AutoPlay)
         </label>
       </div>
 
       <div style={styles.hint}>
-        {hasAnimations ? `Clips: ${clipCount}` : 'This model has no animations'}
+        {hasAnimations ? `动画片段数 (Clips): ${clipCount}` : '此模型没有动画'}
       </div>
     </ControlSection>
   );

@@ -483,7 +483,7 @@ const Demo1: React.FC = () => {
               backgroundColor: colors.button.neutral,
             }}
           >
-            Reset to Defaults
+            重置为默认值
           </button>
 
           <ControlsInstructions isCSMode={cameraMovement.isCSMode} />
@@ -553,10 +553,10 @@ const Demo1: React.FC = () => {
 	                headerActions={(
 	                  <>
 	                    <button type="button" onClick={cameraPathDesigner.toggleDocked} style={compactHeaderButton}>
-	                      Float
+	                      浮动 (Float)
 	                    </button>
 	                    <button type="button" onClick={() => cameraPathDesigner.setOpen(false)} style={compactHeaderButton}>
-	                      Close
+	                      关闭 (Close)
 	                    </button>
 	                  </>
 	                )}

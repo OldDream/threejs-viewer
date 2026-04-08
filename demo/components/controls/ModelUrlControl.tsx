@@ -70,14 +70,14 @@ export function ModelUrlControl({
     fileState.selectedModelFile.name.toLowerCase().endsWith('.gltf');
 
   return (
-    <ControlSection title="Model URL">
+    <ControlSection title="模型 URL">
       <div style={styles.inputGroup}>
-        <label style={themeStyles.label}>GLTF/GLB Model URL</label>
+        <label style={themeStyles.label}>GLTF/GLB 模型 URL</label>
         <input
           type="text"
           value={inputUrl}
           onChange={(e) => onInputUrlChange(e.target.value)}
-          placeholder="Enter model URL..."
+          placeholder="请输入模型 URL..."
           style={themeStyles.input}
         />
       </div>
@@ -96,9 +96,9 @@ export function ModelUrlControl({
         <button
           onClick={() => document.getElementById('folderInput')?.click()}
           style={themeStyles.buttonSecondary}
-          title="Select a folder containing model and all assets"
+          title="选择包含模型及所有资源的文件夹"
         >
-          📂 Choose Folder
+          📂 选择文件夹
         </button>
       </div>
 
@@ -113,9 +113,9 @@ export function ModelUrlControl({
         <button
           onClick={() => document.getElementById('modelFileInput')?.click()}
           style={themeStyles.buttonSecondary}
-          title="Select a local .gltf or .glb file"
+          title="选择本地 .gltf 或 .glb 文件"
         >
-          📁 Choose Local File
+          📁 选择本地文件
         </button>
       </div>
 
@@ -132,14 +132,14 @@ export function ModelUrlControl({
           <button
             onClick={() => document.getElementById('textureFilesInput')?.click()}
             style={themeStyles.buttonSecondary}
-            title="Select texture image files (.png, .jpg, .jpeg)"
+            title="选择纹理图片文件 (.png, .jpg, .jpeg)"
           >
-            🖼️ Choose Texture Files
+            🖼️ 选择纹理文件
           </button>
           {fileState.selectedTextureFiles.length > 0 && (
             <div style={styles.textureInfo}>
               <div style={styles.textureTitle}>
-                {fileState.selectedTextureFiles.length} texture file(s) selected:
+                已选择 {fileState.selectedTextureFiles.length} 个纹理文件:
               </div>
               {fileState.selectedTextureFiles.map((file, index) => (
                 <div key={index} style={styles.textureItem}>
@@ -159,7 +159,7 @@ export function ModelUrlControl({
           ...(isLoading || !inputUrl ? { backgroundColor: colors.button.disabled, cursor: 'not-allowed' } : {}),
         }}
       >
-        {isLoading ? 'Loading...' : 'Load Model'}
+        {isLoading ? '加载中...' : '加载模型'}
       </button>
     </ControlSection>
   );

@@ -28,18 +28,18 @@ export function CameraAnimationControl({
   onChangeViewMode,
 }: CameraAnimationControlProps) {
   return (
-    <ControlSection title="Camera Path Animation">
+    <ControlSection title="相机路径动画 (Camera Path Animation)">
       <div style={styles.inputGroup}>
-        <label style={themeStyles.label}>View Mode</label>
+        <label style={themeStyles.label}>视角模式 (View Mode)</label>
         <select
           value={viewMode}
           onChange={(e) => onChangeViewMode(e.target.value as 'target' | 'fixed' | 'path')}
           disabled={isAnimating}
           style={{ ...themeStyles.input, cursor: isAnimating ? 'not-allowed' : 'pointer' }}
         >
-          <option value="target">Look at Center/Model</option>
-          <option value="fixed">Fixed Direction</option>
-          <option value="path">Look Along Path</option>
+          <option value="target">看向中心/模型 (Look at Center)</option>
+          <option value="fixed">固定方向 (Fixed Direction)</option>
+          <option value="path">沿路径方向 (Look Along Path)</option>
         </select>
       </div>
       
@@ -51,13 +51,13 @@ export function CameraAnimationControl({
           backgroundColor: isAnimating ? colors.button.primaryHover : colors.button.success,
         }}
       >
-        {isAnimating ? 'Stop Animation' : 'Start Animation'}
+        {isAnimating ? '停止动画' : '开始动画'}
       </button>
       
       <div style={styles.hint}>
         {isAnimating 
-          ? 'Orbit Controls disabled during animation' 
-          : 'Path is automatically generated around the model'}
+          ? '动画播放期间禁用 OrbitControls' 
+          : '路径根据模型自动生成'}
       </div>
     </ControlSection>
   );

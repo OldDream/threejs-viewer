@@ -42,6 +42,10 @@ export function parseCameraShot(input: string | unknown): CameraShot {
     throw new Error('Invalid cameraShot: expected object');
   }
 
+  if ('kind' in value && (value['kind'] === 'orbit' || value['kind'] === 'first-person')) {
+    throw new Error('Invalid cameraShot: The provided JSON appears to be a CameraViewPreset (相机视角预设). Please paste it into the preset JSON input instead.');
+  }
+
   const loop = value['loop'];
   if (typeof loop !== 'boolean') {
     throw new Error('Invalid cameraShot.loop: expected boolean');

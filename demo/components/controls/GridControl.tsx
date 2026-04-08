@@ -33,7 +33,7 @@ export function GridControl({
   onChangePlane,
 }: GridControlProps) {
   return (
-    <ControlSection title="Grid & Axes">
+    <ControlSection title="网格与坐标系 (Grid & Axes)">
       <div style={styles.inputGroup}>
         <label style={styles.checkboxLabel}>
           <input
@@ -41,7 +41,7 @@ export function GridControl({
             checked={showGrid}
             onChange={(e) => onToggleGrid(e.target.checked)}
           />
-          Show Grid
+          显示网格 (Show Grid)
         </label>
       </div>
       
@@ -52,20 +52,20 @@ export function GridControl({
             checked={showAxes}
             onChange={(e) => onToggleAxes(e.target.checked)}
           />
-          Show Axes (R=X, G=Y, B=Z)
+          显示坐标轴 (R=X, G=Y, B=Z)
         </label>
       </div>
       
       <div style={styles.inputGroup}>
-        <label style={themeStyles.label}>Grid Plane</label>
+        <label style={themeStyles.label}>网格平面 (Grid Plane)</label>
         <select
           value={gridPlane}
           onChange={(e) => onChangePlane(e.target.value as 'XY' | 'XZ' | 'YZ')}
           style={{ ...themeStyles.input, cursor: 'pointer' }}
         >
-          <option value="XZ">XZ (Ground)</option>
-          <option value="XY">XY (Vertical)</option>
-          <option value="YZ">YZ (Side)</option>
+          <option value="XZ">XZ (地面)</option>
+          <option value="XY">XY (正立面)</option>
+          <option value="YZ">YZ (侧立面)</option>
         </select>
       </div>
     </ControlSection>

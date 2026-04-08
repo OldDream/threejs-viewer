@@ -166,7 +166,7 @@ export function CameraPathEditorFloatingWindow({
         style={styles.titleBar}
         onMouseDown={(event) => beginDrag('move', event)}
       >
-        <div>Path Editor</div>
+        <div>路径编辑器 (Path Editor)</div>
         <div style={{ display: 'flex', gap: spacing.sm }}>
           <button
             type="button"
@@ -174,7 +174,7 @@ export function CameraPathEditorFloatingWindow({
             onClick={onDock}
             style={compactButton}
           >
-            Dock
+            停靠 (Dock)
           </button>
           <button
             type="button"
@@ -182,7 +182,7 @@ export function CameraPathEditorFloatingWindow({
             onClick={onClose}
             style={compactButton}
           >
-            Close
+            关闭 (Close)
           </button>
         </div>
       </div>

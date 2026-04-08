@@ -48,7 +48,7 @@ export function PivotPointControl({
   onApply,
 }: PivotPointControlProps) {
   return (
-    <ControlSection title="Pivot Point">
+    <ControlSection title="轴心点 (Pivot)">
       <div style={styles.inputGroup}>
         <label style={styles.checkboxLabel}>
           <input
@@ -56,7 +56,7 @@ export function PivotPointControl({
             checked={usePivotPoint}
             onChange={(e) => onToggle(e.target.checked)}
           />
-          Use Custom Pivot Point
+          使用自定义轴心点 (Use Custom Pivot Point)
         </label>
       </div>
       
@@ -104,7 +104,7 @@ export function PivotPointControl({
           backgroundColor: colors.button.secondary,
         }}
       >
-        Apply Pivot Point
+        应用轴心点
       </button>
     </ControlSection>
   );

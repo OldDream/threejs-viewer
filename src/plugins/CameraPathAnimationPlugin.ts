@@ -114,9 +114,13 @@ export class CameraPathAnimationPlugin implements Plugin {
   configure(config: CameraPathAnimationConfig): void {
     if (this._isDisposed) return;
 
-    if (config.pathPoints && config.pathPoints.length >= 2) {
+    if (config.pathPoints && config.pathPoints.length >= 1) {
       this._pathPoints = config.pathPoints.map((point) => point.clone());
-      this._curve = new THREE.CatmullRomCurve3(this._pathPoints);
+      if (this._pathPoints.length >= 2) {
+        this._curve = new THREE.CatmullRomCurve3(this._pathPoints);
+      } else {
+        this._curve = null;
+      }
       this._progress = 0;
       this._elapsedSeconds = 0;
     }
@@ -128,7 +132,7 @@ export class CameraPathAnimationPlugin implements Plugin {
     if (config.segments !== undefined) {
       this._segments = this._normalizeSegments(config.segments, this._pathPoints.length);
       this._totalDuration = this._sumSegmentsDuration(this._segments);
-    } else if (config.pathPoints && config.pathPoints.length >= 2) {
+    } else if (config.pathPoints && config.pathPoints.length >= 1) {
       // Only updating points: keep the current timing mode.
       // - If previously configured with segments, re-normalize to match new point count.
       // - Otherwise, stay in legacy duration mode.
@@ -231,7 +235,7 @@ export class CameraPathAnimationPlugin implements Plugin {
   }
 
   private _updateWithLegacyDuration(deltaTime: number): void {
-    if (!this._curve || !this._context) return;
+    if (!this._context || this._pathPoints.length === 0) return;
 
     // Update progress
     this._progress += deltaTime / this._duration;
@@ -247,6 +251,11 @@ export class CameraPathAnimationPlugin implements Plugin {
     }
 
     const camera = this._context.camera;
+
+    if (this._pathPoints.length === 1 || !this._curve) {
+      this._applyStaticCamera(camera);
+      return;
+    }
 
     const eased = this._applyEaseInOut(this._progress);
 
@@ -278,6 +287,25 @@ export class CameraPathAnimationPlugin implements Plugin {
       camera.lookAt(this._tempLookAt);
     }
     // Default: Do not change rotation if no mode selected
+  }
+
+  private _applyStaticCamera(camera: THREE.Camera): void {
+    const pos = this._pathPoints[0];
+    if (pos) {
+      camera.position.copy(pos);
+    }
+    
+    if (this._target) {
+      if (this._target instanceof THREE.Object3D) {
+        this._target.getWorldPosition(this._tempLookAt);
+        camera.lookAt(this._tempLookAt);
+      } else {
+        camera.lookAt(this._target);
+      }
+    } else if (this._fixedDirection) {
+      this._tempLookAt.copy(camera.position).add(this._fixedDirection);
+      camera.lookAt(this._tempLookAt);
+    }
   }
 
   private _updateWithSegments(deltaTime: number): void {
@@ -361,7 +389,8 @@ export class CameraPathAnimationPlugin implements Plugin {
   }
 
   private _hasValidPath(): boolean {
-    if (this._pathPoints.length < 2) return false;
+    if (this._pathPoints.length < 1) return false;
+    if (this._pathPoints.length === 1) return true;
     if (this._segments) {
       return this._segments.length > 0;
     }

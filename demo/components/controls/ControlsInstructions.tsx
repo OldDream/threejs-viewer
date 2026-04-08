@@ -27,21 +27,21 @@ interface ControlsInstructionsProps {
 
 export function ControlsInstructions({ isCSMode }: ControlsInstructionsProps) {
   return (
-    <ControlSection title="Controls">
+    <ControlSection title="操作说明">
       <div style={styles.instructions}>
-        <p style={styles.paragraph}><strong>Rotate:</strong> Left-click and drag</p>
-        <p style={styles.paragraph}><strong>Zoom:</strong> Scroll wheel or pinch</p>
-        <p style={styles.paragraph}><strong>Pan:</strong> Right-click and drag</p>
+        <p style={styles.paragraph}><strong>旋转:</strong> 左键 + 拖拽</p>
+        <p style={styles.paragraph}><strong>缩放:</strong> 滚轮或双指缩放</p>
+        <p style={styles.paragraph}><strong>平移:</strong> 右键 + 拖拽</p>
         
         <p style={{ ...styles.paragraph, ...styles.divider }}>
-          <strong>Keyboard Movement:</strong>
+          <strong>键盘移动:</strong>
         </p>
         <p style={styles.paragraph}>
-          <strong>W / S:</strong> Move forward / backward {isCSMode ? '(View Direction)' : '(Ground)'}
+          <strong>W / S:</strong> 前进 / 后退 {isCSMode ? '(参照视图方向)' : '(参照地面)'}
         </p>
-        <p style={styles.paragraph}><strong>A / D:</strong> Move left / right</p>
-        <p style={styles.paragraph}><strong>Shift:</strong> Move up</p>
-        <p style={styles.paragraph}><strong>Ctrl:</strong> Move down</p>
+        <p style={styles.paragraph}><strong>A / D:</strong> 向左 / 向右平移</p>
+        <p style={styles.paragraph}><strong>Shift:</strong> 向上平移</p>
+        <p style={styles.paragraph}><strong>Ctrl:</strong> 向下平移</p>
       </div>
     </ControlSection>
   );

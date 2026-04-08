@@ -722,9 +722,9 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
       <div style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.titleBlock}>
-            <div style={styles.eyebrow}>Camera Path</div>
-            <div style={styles.title}>Path Editor</div>
-            <div style={styles.subtitle}>Capture points, shape timing, and preview motion.</div>
+            <div style={styles.eyebrow}>相机路径 (Camera Path)</div>
+            <div style={styles.title}>路径编辑器 (Path Editor)</div>
+            <div style={styles.subtitle}>捕获轨迹点、调整时间并预览动画。</div>
           </div>
           <div style={styles.headerActions}>
             <button type="button" onClick={() => setShowJsonModal(true)} style={styles.headerButton}>
@@ -736,40 +736,40 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
 
         <div style={styles.metricGrid}>
           <div style={styles.metricCard}>
-            <div style={styles.metricLabel}>Path</div>
-            <div style={styles.metricValue}>{props.pointCount} points</div>
-            <div style={styles.metricMeta}>{props.segments.length} segments</div>
+            <div style={styles.metricLabel}>路径 (Path)</div>
+            <div style={styles.metricValue}>{props.pointCount} 个点</div>
+            <div style={styles.metricMeta}>{props.segments.length} 个段落</div>
           </div>
           <div style={styles.metricCard}>
-            <div style={styles.metricLabel}>Selection</div>
-            <div style={styles.metricValue}>{props.selectedIndex === null ? 'Point: None' : `Point: #${props.selectedIndex + 1}`}</div>
+            <div style={styles.metricLabel}>当前选择 (Selection)</div>
+            <div style={styles.metricValue}>{props.selectedIndex === null ? '选中点: 无' : `选中点: #${props.selectedIndex + 1}`}</div>
             <div style={styles.metricMeta}>
-              {props.selectedSegmentIndex === null ? 'Segment: None' : `Segment: #${props.selectedSegmentIndex + 1}`}
+              {props.selectedSegmentIndex === null ? '选中段落: 无' : `选中段落: #${props.selectedSegmentIndex + 1}`}
             </div>
           </div>
           <div style={styles.metricCard}>
-            <div style={styles.metricLabel}>Playback</div>
-            <div style={styles.metricValue}>{props.isPlaying ? 'Playing' : 'Idle'}</div>
-            <div style={styles.metricMeta}>{props.loop ? 'Loop enabled' : 'Loop disabled'}</div>
+            <div style={styles.metricLabel}>播放控制 (Playback)</div>
+            <div style={styles.metricValue}>{props.isPlaying ? '播放中' : '空闲'}</div>
+            <div style={styles.metricMeta}>{props.loop ? '已启用循环' : '已禁用循环'}</div>
           </div>
           <div style={styles.metricCard}>
-            <div style={styles.metricLabel}>Timeline</div>
+            <div style={styles.metricLabel}>时间轴 (Timeline)</div>
             <div style={styles.metricValue}>{formatTime(totalDuration)}</div>
             <div style={styles.metricMeta}>{props.timelineZoom}px/s</div>
           </div>
         </div>
 
         <div style={styles.shortcutBar}>
-          <span style={styles.shortcut}>Space Play/Stop</span>
-          <span style={styles.shortcut}>E Toggle Edit</span>
-          <span style={styles.shortcut}>K Add Point</span>
-          <span style={styles.shortcut}>L Toggle Loop</span>
+          <span style={styles.shortcut}>Space 播放/停止</span>
+          <span style={styles.shortcut}>E 切换编辑模式</span>
+          <span style={styles.shortcut}>K 添加关键点</span>
+          <span style={styles.shortcut}>L 切换循环</span>
         </div>
       </div>
 
       <div style={styles.controlRail}>
         <div style={styles.controlGroup}>
-          <div style={styles.groupLabel}>Mode</div>
+          <div style={styles.groupLabel}>模式 (Mode)</div>
           <div style={styles.commandRow}>
             <button
               type="button"
@@ -779,7 +779,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(props.isEditing ? styles.commandButtonActive : null),
               }}
             >
-              {props.isEditing ? 'Editing' : 'Viewing'}
+              {props.isEditing ? '编辑中 (Editing)' : '查看 (Viewing)'}
             </button>
             <button
               type="button"
@@ -789,13 +789,13 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(props.loop ? styles.commandButtonActive : null),
               }}
             >
-              {props.loop ? 'Loop On' : 'Loop Off'}
+              {props.loop ? '循环: 开' : '循环: 关'}
             </button>
           </div>
         </div>
 
         <div style={styles.controlGroup}>
-          <div style={styles.groupLabel}>Playback</div>
+          <div style={styles.groupLabel}>播放控制 (Playback)</div>
           <div style={styles.commandRow}>
             <button
               type="button"
@@ -807,13 +807,13 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canPlay ? styles.commandPrimaryDisabled : null),
               }}
             >
-              {props.isPlaying ? 'Stop' : 'Play'}
+              {props.isPlaying ? '停止' : '播放'}
             </button>
           </div>
         </div>
 
         <div style={styles.controlGroup}>
-          <div style={styles.groupLabel}>Keyframes</div>
+          <div style={styles.groupLabel}>关键点 (Keyframes)</div>
           <div style={styles.commandRow}>
             <button
               type="button"
@@ -824,7 +824,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateKeyframes ? styles.commandButtonDisabled : null),
               }}
             >
-              Add
+              添加
             </button>
             <button
               type="button"
@@ -835,7 +835,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateSelectedPoint ? styles.commandButtonDisabled : null),
               }}
             >
-              Insert
+              插入
             </button>
             <button
               type="button"
@@ -846,13 +846,13 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateSelectedPoint ? styles.commandButtonDisabled : null),
               }}
             >
-              Delete
+              删除
             </button>
           </div>
         </div>
 
         <div style={styles.controlGroup}>
-          <div style={styles.groupLabel}>Targets</div>
+          <div style={styles.groupLabel}>目标 (Targets)</div>
           <div style={styles.commandRow}>
             <button
               type="button"
@@ -864,7 +864,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateKeyframes ? styles.commandButtonDisabled : null),
               }}
             >
-              {props.isPickTargetArmed ? 'Picking...' : 'Pick Target'}
+              {props.isPickTargetArmed ? '选取中...' : '选取目标点'}
             </button>
             <button
               type="button"
@@ -875,7 +875,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateKeyframes ? styles.commandButtonDisabled : null),
               }}
             >
-              Target Center
+              看向中心
             </button>
             <button
               type="button"
@@ -887,7 +887,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 ...(!canMutateKeyframes || props.pointCount === 0 ? styles.commandButtonDisabled : null),
               }}
             >
-              Clear Path
+              清除路径
             </button>
           </div>
         </div>
@@ -895,23 +895,23 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
 
       <div style={styles.content}>
         <div style={styles.sidePane}>
-          <div style={styles.sectionHeading}>Keyframes</div>
+          <div style={styles.sectionHeading}>关键点 (Keyframes)</div>
           <div style={styles.keyframeMeta}>
             {props.selectedIndex === null
-              ? 'Select a keyframe to inspect it.'
-              : `Selected keyframe #${props.selectedIndex + 1}`}
+              ? '选择一个关键点以检查其属性。'
+              : `已选中关键点 #${props.selectedIndex + 1}`}
           </div>
           <div style={styles.list}>
             {props.points.length === 0 ? (
-              <div style={styles.emptyHint}>No keyframes yet. Enable editing and use Add to create your first point.</div>
+              <div style={styles.emptyHint}>暂无关键点。请启用编辑模式并点击“添加”创建第一个控制点。</div>
             ) : (
               props.points.map((point, index) => {
                 const isSelected = props.selectedIndex === index;
                 const title = index === 0
-                  ? 'Start Point'
+                  ? '起点'
                   : index === props.points.length - 1
-                    ? 'End Point'
-                    : `Point ${index + 1}`;
+                    ? '终点'
+                    : `关键点 ${index + 1}`;
                 return (
                   <div
                     key={`point-${index}`}
@@ -939,12 +939,12 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
         <div style={styles.timelineWrap}>
           <div style={styles.timelineToolbar}>
             <div style={styles.timelineToolbarSummary}>
-              <span style={styles.timelineChip}>Duration {formatTime(totalDuration)}</span>
-              <span style={styles.timelineChip}>Segments {props.segments.length}</span>
+              <span style={styles.timelineChip}>总时长 {formatTime(totalDuration)}</span>
+              <span style={styles.timelineChip}>段落 {props.segments.length}</span>
             </div>
             <div style={styles.timelineControlStack}>
               <div style={styles.timelineControl}>
-                <span style={styles.controlLabel}>Zoom</span>
+                <span style={styles.controlLabel}>缩放</span>
                 <input
                   type="range"
                   min={30}
@@ -958,7 +958,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                 <span style={styles.controlValue}>{props.timelineZoom}px/s</span>
               </div>
               <div style={styles.timelineControl}>
-                <span style={styles.controlLabel}>Snap</span>
+                <span style={styles.controlLabel}>吸附</span>
                 <div style={styles.snapButtons}>
                   {SNAP_OPTIONS.map((value) => {
                     const isActive = props.timelineSnap === value;
@@ -983,7 +983,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
 
           <div style={styles.timelineBody}>
             {props.segments.length === 0 ? (
-              <div style={styles.emptyHint}>Add at least two keyframes to unlock timeline editing.</div>
+              <div style={styles.emptyHint}>添加至少两个关键点以解锁时间轴编辑。</div>
             ) : (
               <TimelineEditor
                 segments={props.segments}
@@ -1005,8 +1005,8 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
 
           <div style={styles.segmentStyleHint}>
             {props.isEditing
-              ? 'Use a segment\'s Curve button to open temporary controls.'
-              : 'Enable editing mode to change curve settings.'}
+              ? '点击段落的“曲线 (Curve)”按钮打开临时控制面板。'
+              : '启用编辑模式以更改曲线设置。'}
           </div>
 
           {curveEditorSegment && curveEditorSegmentIndex !== null ? (
@@ -1023,19 +1023,19 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                     onClick={(event) => event.stopPropagation()}
                   >
                     <div style={styles.segmentStylePopupHeader}>
-                      <span style={styles.segmentStyleBadge}>Segment S{segmentIndex + 1}</span>
+                      <span style={styles.segmentStyleBadge}>段落 S{segmentIndex + 1}</span>
                       <button
                         type="button"
                         onClick={() => setCurveEditorSegmentIndex(null)}
                         style={styles.segmentStyleCloseButton}
                       >
-                        Close
+                        关闭
                       </button>
                     </div>
-                    <div style={styles.segmentStyleMeta}>Per-Segment Curve Controls</div>
+                    <div style={styles.segmentStyleMeta}>独立段落曲线控制</div>
                     <div style={styles.segmentStyleGrid}>
                       <div style={styles.segmentStyleField}>
-                        <label style={styles.segmentStyleLabel}>Interpolation</label>
+                        <label style={styles.segmentStyleLabel}>插值方式 (Interpolation)</label>
                         <select
                           value={interpolationMode}
                           disabled={!canMutateKeyframes}
@@ -1052,14 +1052,14 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                           }}
                           style={{ ...themeStyles.input, ...styles.segmentStyleSelect }}
                         >
-                          <option value="inherit">Inherit ({props.defaults.interpolation})</option>
-                          <option value="linear">Linear</option>
-                          <option value="curve">Curve</option>
+                          <option value="inherit">继承 ({props.defaults.interpolation})</option>
+                          <option value="linear">线性 (Linear)</option>
+                          <option value="curve">光滑曲线 (Curve)</option>
                         </select>
                       </div>
 
                       <div style={styles.segmentStyleField}>
-                        <label style={styles.segmentStyleLabel}>Easing</label>
+                        <label style={styles.segmentStyleLabel}>缓动效果 (Easing)</label>
                         <select
                           value={easingMode}
                           disabled={!canMutateKeyframes}
@@ -1086,9 +1086,9 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                           }}
                           style={{ ...themeStyles.input, ...styles.segmentStyleSelect }}
                         >
-                          <option value="inherit">Inherit ({defaultEasingSummary})</option>
-                          <option value="linear">Linear</option>
-                          <option value="smoothstep">Smoothstep</option>
+                          <option value="inherit">继承 ({defaultEasingSummary})</option>
+                          <option value="linear">线性 (Linear)</option>
+                          <option value="smoothstep">平滑过渡 (Smoothstep)</option>
                         </select>
 
                         {easingMode === 'smoothstep' ? (
@@ -1145,23 +1145,23 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
           />
 
           <div style={styles.inspectorSection}>
-            <div style={styles.sectionHeading}>Default Segment Style</div>
+            <div style={styles.sectionHeading}>默认段落样式 (Default Segment Style)</div>
             <div style={styles.defaultsCard}>
               <div style={styles.fieldRow}>
-                <label style={{ ...themeStyles.label, flex: 1 }}>Interpolation</label>
+                <label style={{ ...themeStyles.label, flex: 1 }}>插值方式 (Interpolation)</label>
                 <select
                   value={props.defaults.interpolation}
                   disabled={!canMutateKeyframes}
                   onChange={(e) => props.onSetDefaultInterpolation(e.target.value as InterpolationType)}
                   style={{ ...themeStyles.input, flex: 1 }}
                 >
-                  <option value="curve">Curve</option>
-                  <option value="linear">Linear</option>
+                  <option value="curve">光滑曲线 (Curve)</option>
+                  <option value="linear">线性 (Linear)</option>
                 </select>
               </div>
 
               <div style={styles.fieldRow}>
-                <label style={{ ...themeStyles.label, flex: 1 }}>Easing</label>
+                <label style={{ ...themeStyles.label, flex: 1 }}>缓动效果 (Easing)</label>
                 <select
                   value={defaultEasingMode}
                   disabled={!canMutateKeyframes}
@@ -1175,14 +1175,14 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                   }}
                   style={{ ...themeStyles.input, flex: 1 }}
                 >
-                  <option value="smoothstep">Smoothstep</option>
-                  <option value="linear">Linear</option>
+                  <option value="smoothstep">平滑过渡 (Smoothstep)</option>
+                  <option value="linear">线性 (Linear)</option>
                 </select>
               </div>
 
               {defaultEasingMode === 'smoothstep' ? (
                 <div style={styles.fieldRow}>
-                  <label style={{ ...themeStyles.label, width: 80 }}>Strength</label>
+                  <label style={{ ...themeStyles.label, width: 80 }}>强度 (Strength)</label>
                   <input
                     type="range"
                     min={0}
@@ -1208,7 +1208,7 @@ export function CameraPathEditorPanel(props: CameraPathEditorProps) {
                   ...((!canMutateKeyframes || props.segments.length === 0) ? styles.commandButtonDisabled : null),
                 }}
               >
-                Apply Defaults to All Segments
+                应用默认设置到所有段落
               </button>
             </div>
           </div>

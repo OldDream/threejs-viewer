@@ -97,7 +97,7 @@ export function CameraViewPresetModal({
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h3 style={styles.title}>Camera View Preset</h3>
+          <h3 style={styles.title}>相机视角预设 (Camera View Preset)</h3>
           <button
             type="button"
             onClick={onClose}
@@ -118,13 +118,13 @@ export function CameraViewPresetModal({
 
         <div style={styles.footer}>
           <button type="button" onClick={onExportFromCamera} style={themeStyles.buttonSecondary}>
-            Export from Current
+            导出当前视角
           </button>
           <button type="button" onClick={onApplyToCamera} style={themeStyles.buttonSecondary}>
-            Apply
+            应用
           </button>
           <button type="button" onClick={onClose} style={themeStyles.button}>
-            Done
+            完成
           </button>
         </div>
       </div>

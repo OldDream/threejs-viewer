@@ -80,7 +80,7 @@ export function Demo2() {
       <DemoHeader />
       <DemoMain>
         <DemoSidebar>
-          <ControlSection title="Demo2 Route">
+          <ControlSection title="Demo2 路由">
             <div style={styles.hint}>当前页面路径：#/demo2（手动输入 URL hash 进入）。</div>
           </ControlSection>
 
@@ -102,9 +102,9 @@ export function Demo2() {
             onToggleAutoPlay={modelAnimation.toggleAutoPlay}
           />
 
-          <ControlSection title="Camera Script">
+          <ControlSection title="相机脚本 (Camera Script)">
             <div style={styles.inputGroup}>
-              <label style={themeStyles.label}>Mode</label>
+              <label style={themeStyles.label}>模式 (Mode)</label>
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value as CameraScriptMode)}
@@ -117,31 +117,31 @@ export function Demo2() {
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={themeStyles.label}>Loop (shot)</label>
+              <label style={themeStyles.label}>循环 (Loop) (shot)</label>
               <label style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', color: colors.text.primary }}>
                 <input
                   type="checkbox"
                   checked={loop}
                   onChange={(e) => setLoop(e.target.checked)}
                 />
-                enabled
+                启用
               </label>
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={themeStyles.label}>AutoPlay (shot)</label>
+              <label style={themeStyles.label}>自动播放 (AutoPlay) (shot)</label>
               <label style={{ display: 'flex', gap: spacing.sm, alignItems: 'center', color: colors.text.primary }}>
                 <input
                   type="checkbox"
                   checked={autoPlay}
                   onChange={(e) => setAutoPlay(e.target.checked)}
                 />
-                enabled
+                启用
               </label>
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={themeStyles.label}>cameraShot JSON (shot)</label>
+              <label style={themeStyles.label}>预设视角 cameraShot JSON (shot)</label>
               <textarea
                 value={cameraShotJson}
                 onChange={(e) => setCameraShotJson(e.target.value)}
@@ -151,7 +151,7 @@ export function Demo2() {
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={themeStyles.label}>cameraViewPreset JSON (preset)</label>
+              <label style={themeStyles.label}>相机路径 cameraViewPreset JSON (preset)</label>
               <textarea
                 value={cameraViewPresetJson}
                 onChange={(e) => setCameraViewPresetJson(e.target.value)}

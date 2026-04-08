@@ -54,7 +54,7 @@ export function CameraPathDesignerControl({
   const canEditPath = isEditing && !isPlaying;
 
   return (
-    <ControlSection title="Camera Path Designer">
+    <ControlSection title="相机路径设计器 (Camera Path Designer)">
       <button
         type="button"
         onClick={onTogglePanel}
@@ -63,12 +63,12 @@ export function CameraPathDesignerControl({
           backgroundColor: panelOpen ? colors.button.success : colors.button.primary,
         }}
       >
-        {panelOpen ? 'Hide Path Editor' : 'Open Path Editor'}
+        {panelOpen ? '隐藏路径编辑器' : '打开路径编辑器'}
       </button>
 
       <div style={{ ...styles.row, marginTop: spacing.md }}>
         <button type="button" onClick={onToggleEditing} disabled={isPlaying} style={themeStyles.buttonSecondary}>
-          {isEditing ? 'Editing: ON' : 'Editing: OFF'}
+          {isEditing ? '编辑: 开 (ON)' : '编辑: 关 (OFF)'}
         </button>
         <button
           type="button"
@@ -79,13 +79,13 @@ export function CameraPathDesignerControl({
             backgroundColor: isPlaying ? colors.button.primaryHover : colors.button.success,
           }}
         >
-          {isPlaying ? 'Stop' : 'Play'}
+          {isPlaying ? '停止' : '播放'}
         </button>
       </div>
 
       <div style={styles.row}>
         <button type="button" onClick={onAddPoint} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          Add Point
+          添加关键点 (Point)
         </button>
         <label style={{ ...themeStyles.label, marginBottom: 0, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
           <input
@@ -93,21 +93,21 @@ export function CameraPathDesignerControl({
             checked={loop}
             onChange={(e) => onToggleLoop(e.target.checked)}
           />
-          Loop
+          循环
         </label>
       </div>
 
       <div style={styles.row}>
         <button type="button" onClick={onSetTargetToCenter} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          Target Center
+          看向中心
         </button>
         <button type="button" onClick={onPickTargetOnce} disabled={!canEditPath} style={themeStyles.buttonSecondary}>
-          {isPickTargetArmed ? 'Pick Target…' : 'Pick Target'}
+          {isPickTargetArmed ? '选取目标点…' : '选取目标点'}
         </button>
       </div>
 
       <div style={styles.hint}>
-        Points: {pointCount}. Advanced segment timing and interpolation live in the standalone editor panel.
+        关键点数 (Points): {pointCount}。高级段落时间和插值设置在独立的编辑器面板中。
       </div>
     </ControlSection>
   );

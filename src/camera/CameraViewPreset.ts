@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { OrbitControls } from 'three-stdlib';
 
 export type CameraViewPresetV1 = {
-  version: 1;
+  version?: number;
   kind: 'orbit';
   target: { x: number; y: number; z: number };
   spherical: { radius: number; phi: number; theta: number };
@@ -51,9 +51,7 @@ export function parseCameraViewPreset(input: string | unknown): CameraViewPreset
     throw new Error('Invalid cameraViewPreset: expected object');
   }
 
-  if (value['version'] !== 1) {
-    throw new Error('Invalid cameraViewPreset.version: expected 1');
-  }
+  const version = value['version'];
 
   if (value['kind'] !== 'orbit') {
     throw new Error("Invalid cameraViewPreset.kind: expected 'orbit'");
@@ -75,7 +73,7 @@ export function parseCameraViewPreset(input: string | unknown): CameraViewPreset
   const rawRadiusMode = value['radiusMode'];
 
   const preset: CameraViewPreset = {
-    version: 1,
+    version: typeof version === 'number' ? version : 2,
     kind: 'orbit',
     target,
     spherical: { radius, phi, theta },
@@ -118,7 +116,7 @@ export function exportCameraViewPreset(
   }
 
   return {
-    version: 1,
+    version: 2,
     kind: 'orbit',
     target: { x: targetVec.x, y: targetVec.y, z: targetVec.z },
     spherical: { radius, phi: spherical.phi, theta: spherical.theta },

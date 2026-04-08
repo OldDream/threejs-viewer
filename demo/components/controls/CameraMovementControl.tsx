@@ -35,7 +35,7 @@ export function CameraMovementControl({
   onToggleCSMode,
 }: CameraMovementControlProps) {
   return (
-    <ControlSection title="Camera Movement">
+    <ControlSection title="相机运动 (Camera Movement)">
       <div style={styles.inputGroup}>
         <label style={styles.checkboxLabel}>
           <input
@@ -44,7 +44,7 @@ export function CameraMovementControl({
             onChange={(e) => onToggleEnabled(e.target.checked)}
             disabled={isAnimating}
           />
-          Enable WASD Control
+          启用 WASD 控制
         </label>
       </div>
       
@@ -56,13 +56,13 @@ export function CameraMovementControl({
             onChange={(e) => onToggleCSMode(e.target.checked)}
             disabled={!enabled || isAnimating}
           />
-          Enable CS Mode (Fly)
+          启用 CS 模式 (第一人称)
         </label>
       </div>
       
       <div style={{ ...styles.inputGroup, opacity: enabled ? 1 : 0.5 }}>
         <label style={themeStyles.label}>
-          Movement Speed: {speed.toFixed(1)}
+          运动速度 (Speed): {speed.toFixed(1)}
         </label>
         <input
           type="range"

@@ -229,14 +229,15 @@ interface TimelineEditorProps {
 }
 
 function formatInterpolation(segment: CameraPathSegmentConfig): string {
-  if (!segment.interpolation || segment.interpolation.mode === 'inherit') return 'interp: inherit';
-  return `interp: ${segment.interpolation.value}`;
+  if (!segment.interpolation || segment.interpolation.mode === 'inherit') return '插值: 继承';
+  const val = segment.interpolation.value === 'curve' ? '曲线' : '线性';
+  return `插值: ${val}`;
 }
 
 function formatEasing(segment: CameraPathSegmentConfig): string {
-  if (!segment.easing || segment.easing.mode === 'inherit') return 'easing: inherit';
-  if (segment.easing.value.type === 'linear') return 'easing: linear';
-  return `easing: smooth(${segment.easing.value.strength.toFixed(2)})`;
+  if (!segment.easing || segment.easing.mode === 'inherit') return '缓动: 继承';
+  if (segment.easing.value.type === 'linear') return '缓动: 线性';
+  return `缓动: 平滑(${segment.easing.value.strength.toFixed(2)})`;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -371,17 +372,17 @@ export function TimelineEditor({
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div style={styles.totalLabel}>Total {totalDuration.toFixed(2)}s</div>
+        <div style={styles.totalLabel}>总计 {totalDuration.toFixed(2)}s</div>
         <div style={styles.hint}>
           {isEditing
-            ? 'Drag a boundary to redistribute duration. Hold Shift for 0.01s precision.'
-            : 'Viewing mode: timing controls are locked.'}
+            ? '拖动边界以重新分配时长。按住 Shift 键可实现 0.01 秒精度。'
+            : '查看模式：时间控制已锁定。'}
         </div>
       </div>
 
       <div style={styles.body}>
         {segments.length === 0 ? (
-          <div style={styles.emptyState}>Create at least two keyframes to start editing timeline segments.</div>
+          <div style={styles.emptyState}>创建至少两个关键点以开始编辑时间轴段落。</div>
         ) : (
           <div style={{ ...styles.canvas, width: `${timelineWidth}px` }}>
             <div style={styles.ruler}>
@@ -408,7 +409,7 @@ export function TimelineEditor({
                     onClick={() => onSelectSegment(index)}
                     onDoubleClick={() => {
                       if (isPlaying || !isEditing) return;
-                      const input = window.prompt('Set segment duration (seconds)', String(segment.duration));
+                      const input = window.prompt('设置段落时长（秒）', String(segment.duration));
                       if (!input) return;
                       const value = Number(input);
                       if (!Number.isFinite(value)) return;
@@ -439,9 +440,9 @@ export function TimelineEditor({
                                 onOpenCurveEditor(index);
                               }}
                               style={styles.segmentCurveButton}
-                              title={`Open curve editor for segment ${index + 1}`}
+                              title={`打开段落 ${index + 1} 的曲线编辑器`}
                             >
-                              Curve
+                              曲线 (Curve)
                             </button>
                           ) : null}
                         </div>

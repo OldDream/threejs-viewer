@@ -17,12 +17,12 @@ interface CameraViewPresetControlProps {
 
 export function CameraViewPresetControl({ onOpen }: CameraViewPresetControlProps) {
   return (
-    <ControlSection title="Camera View Preset">
+    <ControlSection title="相机视角预设 (Camera View Preset)">
       <button type="button" onClick={onOpen} style={themeStyles.buttonSecondary}>
-        Open Preset JSON
+        打开预设 JSON
       </button>
       <div style={styles.hint}>
-        Export current view or paste JSON to apply an initial camera view.
+        导出当前视角或粘贴 JSON 以应用初始相机视角。
       </div>
     </ControlSection>
   );
