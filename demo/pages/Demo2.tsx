@@ -105,15 +105,26 @@ export function Demo2() {
           <ControlSection title="相机脚本 (Camera Script)">
             <div style={styles.inputGroup}>
               <label style={themeStyles.label}>模式 (Mode)</label>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value as CameraScriptMode)}
-                style={{ ...themeStyles.input, cursor: 'pointer' }}
-              >
-                <option value="none">none</option>
-                <option value="shot">shot</option>
-                <option value="preset">preset</option>
-              </select>
+              <div style={{ display: 'flex', gap: spacing.sm }}>
+                {([
+                  { value: 'none', label: 'none' },
+                  { value: 'shot', label: '固定视角 (shot)' },
+                  { value: 'preset', label: '相机路径 (preset)' },
+                ] as const).map(({ value: m, label }) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m as CameraScriptMode)}
+                    style={{
+                      ...themeStyles.buttonSecondary,
+                      flex: 1,
+                      backgroundColor: mode === m ? colors.button.primary : colors.button.secondary,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={styles.inputGroup}>
