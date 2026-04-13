@@ -26,7 +26,7 @@
     "dev": "vite",
     "dev:demo": "vite --mode demo --host",
     "build": "tsc -b && vite build",
-    "build:lib": "tsc --emitDeclarationOnly --declaration --outDir dist && vite build",
+    "build:lib": "vite build && pnpm exec tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
