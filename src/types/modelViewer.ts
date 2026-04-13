@@ -40,9 +40,10 @@ export interface ModelViewerHandle extends ThreeViewerHandle {
   getCameraDistanceToModelCenter(): number | null;
 
   /**
-   * 基于当前模型包围盒和给定轨道姿态，计算一个“首次载入安全距离”。
+   * 基于当前模型包围盒，计算一个“首次载入安全距离”。
    *
-   * 该距离的目标是：在初始姿态下让整个模型尽可能完整地落在视窗中。
+   * 该距离会对整组 orbit 姿态取保守上界，
+   * 目标是让 phase / axisAngle 调整时都不再出现忽远忽近。
    */
   getRecommendedOrbitDistance(options?: {
     axis?: 'x' | 'y' | 'z';

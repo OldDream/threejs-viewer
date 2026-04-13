@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { parseCameraAxisOrbitScript } from '../camera/CameraAxisOrbit';
-import { computeOrbitFitDistanceEnvelope } from '../camera/CameraFitDistance';
+import { computeOrbitFitDistancePoseEnvelope } from '../camera/CameraFitDistance';
 import { CameraScriptController } from './CameraScriptController';
 import { ThreeViewer } from './ThreeViewer';
 import { useResolvedModel } from '../hooks/useResolvedModel';
@@ -117,8 +117,6 @@ export const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(funct
 
               return {
                 axis: options?.axis ?? orbitConfig.axis,
-                axisAngleDeg: options?.axisAngleDeg ?? orbitConfig.axisAngleDeg,
-                phaseDeg: options?.phaseDeg ?? orbitConfig.phaseDeg,
                 padding:
                   options?.padding
                   ?? (orbitConfig.distance.mode === 'fit' ? orbitConfig.distance.padding : 1.15),
@@ -130,8 +128,6 @@ export const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(funct
 
           return {
             axis: options?.axis ?? 'y',
-            axisAngleDeg: options?.axisAngleDeg ?? 60,
-            phaseDeg: options?.phaseDeg ?? 45,
             padding: options?.padding ?? 1.15,
           };
         })();
@@ -142,13 +138,14 @@ export const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(funct
 
         // 对外暴露这个方法的目的，是让首次载入时可以先算安全距离，
         // 再决定是否把它写回业务配置，避免相机初始化在模型内部。
+        // 这里返回的是对整组 orbit 姿态都稳定的半径：
+        // phaseDeg 和 axisAngleDeg 改动时，都不会再把镜头突然拉近。
         const padding = resolvedOptions.padding;
 
-        return computeOrbitFitDistanceEnvelope({
+        return computeOrbitFitDistancePoseEnvelope({
           boundingBox: loadResult.boundingBox,
           target: loadResult.center,
           axis: resolvedOptions.axis,
-          axisAngleDeg: resolvedOptions.axisAngleDeg,
           fovDeg: instances.camera.fov,
           aspect: instances.camera.aspect,
           ...(instances.camera.near !== undefined ? { near: instances.camera.near } : {}),

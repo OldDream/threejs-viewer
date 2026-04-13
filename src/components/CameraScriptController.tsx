@@ -11,7 +11,7 @@ import {
   type ResolvedCameraAxisOrbitScript,
 } from '../camera/CameraAxisOrbit';
 import {
-  computeOrbitFitDistanceEnvelope,
+  computeOrbitFitDistancePoseEnvelope,
 } from '../camera/CameraFitDistance';
 import { CameraPathAnimationPlugin } from '../plugins/CameraPathAnimationPlugin';
 import type { IModelLoaderPlugin } from '../plugins/ModelLoaderPlugin';
@@ -256,25 +256,68 @@ export function CameraScriptController({
       return sphere.radius > 0 ? sphere.radius : undefined;
     };
 
-    const computeFitDistance = (target: THREE.Vector3) => {
-      const bbox = modelLoader?.getBoundingBox();
-      if (!bbox) return null;
+    let cachedOrbitRadiusKey: string | null = null;
+    let cachedOrbitRadius: number | null = null;
 
+    const toKeyPart = (value: number | undefined) =>
+      typeof value === 'number' && Number.isFinite(value) ? value.toFixed(6) : 'na';
+
+    const getResolvedOrbitRadius = (target: THREE.Vector3) => {
+      const bbox = modelLoader?.getBoundingBox();
+      const computedModelRadius = computeModelRadius();
       const padding =
         resolvedOrbit.distance.mode === 'fit' ? resolvedOrbit.distance.padding : undefined;
+      const distanceKey =
+        resolvedOrbit.distance.mode === 'fit'
+          ? `fit:${toKeyPart(padding)}`
+          : `${resolvedOrbit.distance.mode}:${toKeyPart(resolvedOrbit.distance.value)}`;
+      const bboxKey = bbox
+        ? [
+            toKeyPart(bbox.min.x),
+            toKeyPart(bbox.min.y),
+            toKeyPart(bbox.min.z),
+            toKeyPart(bbox.max.x),
+            toKeyPart(bbox.max.y),
+            toKeyPart(bbox.max.z),
+          ].join(',')
+        : 'bbox:na';
+      const radiusKey = [
+        resolvedOrbit.axis,
+        distanceKey,
+        toKeyPart(camera.fov),
+        toKeyPart(camera.aspect),
+        toKeyPart(camera.near),
+        toKeyPart(target.x),
+        toKeyPart(target.y),
+        toKeyPart(target.z),
+        toKeyPart(computedModelRadius),
+        bboxKey,
+      ].join('|');
 
-      // 这里返回的是“整圈轨道的最大安全距离”，
-      // 这样用户切换初始相位时，相机半径不会跟着跳来跳去。
-      return computeOrbitFitDistanceEnvelope({
-        boundingBox: bbox,
-        target,
-        axis: resolvedOrbit.axis,
-        axisAngleDeg: resolvedOrbit.axisAngleDeg,
-        fovDeg: camera.fov,
-        aspect: camera.aspect,
-        ...(camera.near !== undefined ? { near: camera.near } : {}),
-        ...(padding !== undefined ? { padding } : {}),
+      if (cachedOrbitRadiusKey === radiusKey) {
+        return cachedOrbitRadius;
+      }
+
+      const computedFitDistance =
+        resolvedOrbit.distance.mode === 'fit' && bbox
+          ? computeOrbitFitDistancePoseEnvelope({
+              boundingBox: bbox,
+              target,
+              axis: resolvedOrbit.axis,
+              fovDeg: camera.fov,
+              aspect: camera.aspect,
+              ...(camera.near !== undefined ? { near: camera.near } : {}),
+              ...(padding !== undefined ? { padding } : {}),
+            })
+          : undefined;
+
+      cachedOrbitRadius = resolveOrbitDistanceValue(resolvedOrbit.distance, {
+        ...(computedModelRadius !== undefined ? { modelRadius: computedModelRadius } : {}),
+        ...(computedFitDistance !== undefined ? { fitDistance: computedFitDistance } : {}),
       });
+      cachedOrbitRadiusKey = radiusKey;
+
+      return cachedOrbitRadius;
     };
 
     const applyOrbitState = (phaseDeg: number) => {
@@ -284,15 +327,8 @@ export function CameraScriptController({
       // 这一步把三种距离模式统一收敛成最终半径：
       // absolute -> 直接使用
       // relativeToModelRadius -> 乘模型包围球半径
-      // fit -> 根据当前初始观察姿态反推出“整模入窗”的推荐距离
-      const computedModelRadius = computeModelRadius();
-      const computedFitDistance =
-        resolvedOrbit.distance.mode === 'fit' ? computeFitDistance(target) ?? undefined : undefined;
-
-      const radius = resolveOrbitDistanceValue(resolvedOrbit.distance, {
-        ...(computedModelRadius !== undefined ? { modelRadius: computedModelRadius } : {}),
-        ...(computedFitDistance !== undefined ? { fitDistance: computedFitDistance } : {}),
-      });
+      // fit -> 对 phase 和 axisAngle 一起取包络后的最远安全距离
+      const radius = getResolvedOrbitRadius(target);
 
       if (!(typeof radius === 'number' && Number.isFinite(radius) && radius > 0)) {
         return false;

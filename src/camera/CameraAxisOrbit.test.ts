@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { computeOrbitFitDistance, computeOrbitFitDistanceEnvelope } from './CameraFitDistance';
+import {
+  computeOrbitFitDistance,
+  computeOrbitFitDistanceEnvelope,
+  computeOrbitFitDistancePoseEnvelope,
+} from './CameraFitDistance';
 import {
   getAxisOrbitPose,
   parseCameraAxisOrbitScript,
@@ -99,5 +103,60 @@ describe('CameraAxisOrbit', () => {
 
     expect(envelope).toBeGreaterThanOrEqual(sampleA);
     expect(envelope).toBeGreaterThanOrEqual(sampleB);
+  });
+
+  it('computes a pose envelope distance that is stable across both phase and axis angle', () => {
+    const boundingBox = new THREE.Box3(
+      new THREE.Vector3(-3, -1, -2),
+      new THREE.Vector3(3, 1, 2)
+    );
+
+    const envelope = computeOrbitFitDistancePoseEnvelope({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+      axisAngleSampleCount: 37,
+      phaseSampleCount: 72,
+    });
+
+    const sampleA = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 20,
+      phaseDeg: 0,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+    });
+
+    const sampleB = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 90,
+      phaseDeg: 120,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+    });
+
+    const sampleC = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 150,
+      phaseDeg: 270,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+    });
+
+    expect(envelope).toBeGreaterThanOrEqual(sampleA);
+    expect(envelope).toBeGreaterThanOrEqual(sampleB);
+    expect(envelope).toBeGreaterThanOrEqual(sampleC);
   });
 });

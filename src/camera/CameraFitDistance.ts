@@ -18,6 +18,14 @@ export interface OrbitFitDistanceEnvelopeOptions
   sampleCount?: number;
 }
 
+export interface OrbitFitDistancePoseEnvelopeOptions
+  extends Omit<OrbitFitDistanceOptions, 'axisAngleDeg' | 'phaseDeg'> {
+  minAxisAngleDeg?: number;
+  maxAxisAngleDeg?: number;
+  axisAngleSampleCount?: number;
+  phaseSampleCount?: number;
+}
+
 function getBoundingBoxCorners(boundingBox: THREE.Box3): THREE.Vector3[] {
   const { min, max } = boundingBox;
 
@@ -129,6 +137,64 @@ export function computeOrbitFitDistanceEnvelope(
       aspect,
       ...(near !== undefined ? { near } : {}),
       ...(padding !== undefined ? { padding } : {}),
+    });
+
+    maxDistance = Math.max(maxDistance, distance);
+  }
+
+  return maxDistance;
+}
+
+/**
+ * 计算“整组轨道姿态”的最保守安全距离。
+ *
+ * 与仅对 phase 取包络不同，这里会同时扫描：
+ * 1. 不同的相位 phaseDeg
+ * 2. 不同的与旋转轴夹角 axisAngleDeg
+ *
+ * 这样业务在拖动 axisAngleDeg 滑杆时，相机半径也不会忽远忽近，
+ * 而是始终沿用这一组姿态中的最大安全值。
+ */
+export function computeOrbitFitDistancePoseEnvelope(
+  options: OrbitFitDistancePoseEnvelopeOptions
+): number {
+  const {
+    boundingBox,
+    target,
+    axis,
+    fovDeg,
+    aspect,
+    near,
+    padding,
+    minAxisAngleDeg = 0,
+    maxAxisAngleDeg = 180,
+    axisAngleSampleCount = 91,
+    phaseSampleCount = 180,
+  } = options;
+
+  const startAngle = THREE.MathUtils.clamp(Math.min(minAxisAngleDeg, maxAxisAngleDeg), 0, 180);
+  const endAngle = THREE.MathUtils.clamp(Math.max(minAxisAngleDeg, maxAxisAngleDeg), 0, 180);
+  const safeAxisAngleSampleCount =
+    startAngle === endAngle ? 1 : Math.max(2, Math.floor(axisAngleSampleCount));
+
+  let maxDistance = 0;
+
+  for (let index = 0; index < safeAxisAngleSampleCount; index += 1) {
+    const axisAngleDeg =
+      safeAxisAngleSampleCount === 1
+        ? startAngle
+        : startAngle + ((endAngle - startAngle) * index) / (safeAxisAngleSampleCount - 1);
+
+    const distance = computeOrbitFitDistanceEnvelope({
+      boundingBox,
+      target,
+      axis,
+      axisAngleDeg,
+      fovDeg,
+      aspect,
+      ...(near !== undefined ? { near } : {}),
+      ...(padding !== undefined ? { padding } : {}),
+      sampleCount: phaseSampleCount,
     });
 
     maxDistance = Math.max(maxDistance, distance);
