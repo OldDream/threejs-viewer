@@ -286,6 +286,13 @@ export class OrbitControlsPlugin implements IOrbitControlsPlugin {
       return;
     }
 
+    // 当其他脚本模式（如 shot / orbit）接管相机时，
+    // OrbitControls 会被显式禁用。这里同步停止内部 update，
+    // 避免 OrbitControls 继续用自己的球坐标状态覆盖脚本算出来的镜头位姿。
+    if (!this._controls.enabled) {
+      return;
+    }
+
     // Update controls for damping effect
     // This must be called on each frame for smooth camera movement
     this._controls.update();

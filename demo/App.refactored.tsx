@@ -30,6 +30,7 @@ import { CameraPathEditorPanel } from './components/panels/CameraPathEditorPanel
 import { CameraPathEditorFloatingWindow } from './components/panels/CameraPathEditorFloatingWindow';
 import { CameraViewPresetModal } from './components/panels/CameraViewPresetModal';
 import { Demo2 } from './pages/Demo2';
+import { Demo3 } from './pages/Demo3';
 
 // Hooks
 import { useModelLoader } from './hooks/useModelLoader';
@@ -561,10 +562,11 @@ const Demo1: React.FC = () => {
   );
 };
 
-type DemoRoute = 'demo1' | 'demo2';
+type DemoRoute = 'demo1' | 'demo2' | 'demo3';
 
 function resolveRouteFromHash(hash: string): DemoRoute {
   if (hash.startsWith('#/demo2')) return 'demo2';
+  if (hash.startsWith('#/demo3')) return 'demo3';
   return 'demo1';
 }
 
@@ -577,7 +579,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  return route === 'demo2' ? <Demo2 /> : <Demo1 />;
+  if (route === 'demo2') return <Demo2 />;
+  if (route === 'demo3') return <Demo3 />;
+  return <Demo1 />;
 };
 
 export default App;

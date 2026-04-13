@@ -2,11 +2,11 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   type CameraScriptMode,
   type ModelLoadResult,
+  type ModelViewerHandle,
   ModelViewer,
   type ModelViewerCameraScript,
   type ModelViewerErrorContext,
   type ModelViewerModel,
-  ThreeViewerHandle,
 } from '../../src';
 import { DemoLayout, DemoMain } from '../components/DemoLayout';
 import { DemoHeader } from '../components/DemoHeader';
@@ -116,7 +116,7 @@ function describeModel(model: ModelViewerModel | null): string {
 }
 
 export function Demo2() {
-  const viewerRef = useRef<ThreeViewerHandle>(null);
+  const viewerRef = useRef<ModelViewerHandle>(null);
   const [inputUrl, setInputUrl] = useState(DEFAULT_MODEL_URL);
   const [fileState, setFileState] = useState<FileState>(INITIAL_FILE_STATE);
   const [appliedModel, setAppliedModel] = useState<ModelViewerModel | null>({
@@ -224,7 +224,9 @@ export function Demo2() {
       <DemoMain>
         <DemoSidebar>
           <ControlSection title="Demo2 路由">
-            <div style={styles.hint}>当前页面路径：#/demo2。这个页面现在只演示如何使用高层 `ModelViewer` 组件。</div>
+            <div style={styles.hint}>
+              当前页面路径：#/demo2。这个页面保留 JSON 驱动示例，方便和新的参数化 orbit 模式做对照。
+            </div>
           </ControlSection>
 
           <ModelUrlControl
@@ -251,8 +253,8 @@ export function Demo2() {
               <div style={{ display: 'flex', gap: spacing.sm }}>
                 {([
                   { value: 'none', label: 'none' },
-                  { value: 'shot', label: '固定视角 (shot)' },
-                  { value: 'preset', label: '相机路径 (preset)' },
+                  { value: 'shot', label: '相机路径 (shot)' },
+                  { value: 'preset', label: '固定视角 (preset)' },
                 ] as const).map(({ value: nextMode, label }) => (
                   <button
                     key={nextMode}

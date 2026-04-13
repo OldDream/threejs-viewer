@@ -139,4 +139,36 @@ describe('CameraScriptController', () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
   });
+
+  it('takes over orbit controls while orbit mode is active and restores them on unmount', async () => {
+    const { viewerCore, orbitControls } = createViewerCoreStub();
+
+    const viewerRef = {
+      current: {
+        getViewerCore: () => viewerCore as any,
+      },
+    } as any;
+
+    const { unmount } = render(
+      <CameraScriptController
+        viewerRef={viewerRef}
+        mode="orbit"
+        cameraAxisOrbit={{
+          axis: 'y',
+          axisAngleDeg: 90,
+          phaseDeg: 270,
+          autoRotate: false,
+          distance: { mode: 'absolute', value: 6 },
+        }}
+      />
+    );
+
+    await act(async () => {});
+
+    expect(orbitControls.enabled).toBe(false);
+    expect(viewerCore.camera.camera.position.length()).toBeCloseTo(6, 5);
+
+    unmount();
+    expect(orbitControls.enabled).toBe(true);
+  });
 });

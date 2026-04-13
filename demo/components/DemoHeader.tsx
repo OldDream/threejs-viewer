@@ -55,6 +55,7 @@ export function DemoHeader() {
 
   const route = useMemo(() => {
     if (hash.startsWith('#/demo2')) return 'demo2';
+    if (hash.startsWith('#/demo3')) return 'demo3';
     return 'demo1';
   }, [hash]);
 
@@ -73,7 +74,7 @@ export function DemoHeader() {
     <header style={styles.header}>
       <div style={styles.titleGroup}>
         <h1 style={styles.title}>Three.js Viewer</h1>
-        <span style={styles.subtitle}>Demo / Demo2</span>
+        <span style={styles.subtitle}>Demo / Demo2 / Demo3</span>
       </div>
       <nav style={styles.nav}>
         <button
@@ -99,6 +100,18 @@ export function DemoHeader() {
           }}
         >
           Demo2
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = '#/demo3';
+          }}
+          style={{
+            ...navButtonBase,
+            backgroundColor: route === 'demo3' ? colors.button.primary : colors.button.secondary,
+          }}
+        >
+          Demo3
         </button>
       </nav>
     </header>

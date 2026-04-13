@@ -1,0 +1,60 @@
+import * as THREE from 'three';
+import { computeOrbitFitDistance } from './CameraFitDistance';
+import {
+  getAxisOrbitPose,
+  parseCameraAxisOrbitScript,
+  resolveOrbitDistanceValue,
+} from './CameraAxisOrbit';
+
+describe('CameraAxisOrbit', () => {
+  it('fills defaults when parsing a minimal orbit config', () => {
+    const parsed = parseCameraAxisOrbitScript({});
+
+    expect(parsed.axis).toBe('y');
+    expect(parsed.axisAngleDeg).toBe(60);
+    expect(parsed.phaseDeg).toBe(45);
+    expect(parsed.autoRotate).toBe(true);
+    expect(parsed.speedDegPerSec).toBe(15);
+    expect(parsed.distance.mode).toBe('fit');
+  });
+
+  it('builds a pose whose position keeps the requested radius', () => {
+    const target = new THREE.Vector3(1, 2, 3);
+    const pose = getAxisOrbitPose({
+      target,
+      axis: 'z',
+      axisAngleDeg: 90,
+      phaseDeg: 180,
+      radius: 8,
+    });
+
+    expect(pose.position.distanceTo(target)).toBeCloseTo(8, 6);
+    expect(pose.forward.length()).toBeCloseTo(1, 6);
+    expect(pose.right.length()).toBeCloseTo(1, 6);
+    expect(pose.up.length()).toBeCloseTo(1, 6);
+  });
+
+  it('computes a fit distance larger than the raw half-extent for a front view', () => {
+    const boundingBox = new THREE.Box3(
+      new THREE.Vector3(-2, -1, -1),
+      new THREE.Vector3(2, 1, 1)
+    );
+
+    const fitDistance = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 90,
+      phaseDeg: 270,
+      fovDeg: 50,
+      aspect: 1,
+      near: 0.1,
+      padding: 1.1,
+    });
+
+    expect(fitDistance).toBeGreaterThan(4);
+    expect(
+      resolveOrbitDistanceValue({ mode: 'fit', padding: 1.1 }, { fitDistance })
+    ).toBeCloseTo(fitDistance, 6);
+  });
+});

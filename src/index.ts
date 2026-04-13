@@ -79,6 +79,7 @@ export {
 
 export {
   ModelViewer,
+  type ModelViewerHandle,
   type ModelViewerCameraScript,
   type ModelViewerErrorContext,
   type ModelViewerModel,
@@ -96,6 +97,17 @@ export {
   toCameraPathAnimationConfig,
   type CameraShot,
 } from './camera/CameraShotIO';
+
+export {
+  parseCameraAxisOrbitScript,
+  type CameraAxisOrbitScript,
+  type OrbitAxis,
+  type OrbitDistanceConfig,
+} from './camera/CameraAxisOrbit';
+
+export {
+  computeOrbitFitDistance,
+} from './camera/CameraFitDistance';
 
 export {
   parseCameraViewPreset,

@@ -2,6 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { ThreeViewerHandle } from '../types/instance';
 import type { ViewerCore } from '../core/ViewerCore';
+import {
+  applyAxisOrbitPose,
+  getAxisOrbitPose,
+  parseCameraAxisOrbitScript,
+  resolveOrbitDistanceValue,
+  type CameraAxisOrbitScript,
+  type ResolvedCameraAxisOrbitScript,
+} from '../camera/CameraAxisOrbit';
+import { computeOrbitFitDistance } from '../camera/CameraFitDistance';
 import { CameraPathAnimationPlugin } from '../plugins/CameraPathAnimationPlugin';
 import type { IModelLoaderPlugin } from '../plugins/ModelLoaderPlugin';
 import type { IOrbitControlsPlugin } from '../plugins/OrbitControlsPlugin';
@@ -12,7 +21,7 @@ import {
   type CameraViewPreset,
 } from '../camera/CameraViewPreset';
 
-export type CameraScriptMode = 'shot' | 'preset' | 'none';
+export type CameraScriptMode = 'shot' | 'preset' | 'orbit' | 'none';
 
 export interface CameraScriptControllerProps {
   viewerRef: React.RefObject<ThreeViewerHandle | null>;
@@ -26,6 +35,9 @@ export interface CameraScriptControllerProps {
   cameraViewPresetJson?: string;
   cameraViewPreset?: CameraViewPreset;
   applyViewWhen?: 'immediate' | 'afterModelLoaded';
+
+  cameraAxisOrbitJson?: string;
+  cameraAxisOrbit?: CameraAxisOrbitScript;
 
   modelCenter?: THREE.Vector3;
   modelRadius?: number;
@@ -55,6 +67,8 @@ export function CameraScriptController({
   cameraViewPresetJson,
   cameraViewPreset,
   applyViewWhen = 'afterModelLoaded',
+  cameraAxisOrbitJson,
+  cameraAxisOrbit,
   modelCenter,
   modelRadius,
   onError,
@@ -62,6 +76,8 @@ export function CameraScriptController({
   const [viewerCore, setViewerCore] = useState<ViewerCore | null>(null);
   const animationRef = useRef<CameraPathAnimationPlugin | null>(null);
   const applyPresetRafRef = useRef<number | null>(null);
+  const applyOrbitRafRef = useRef<number | null>(null);
+  const orbitControlsEnabledRef = useRef<boolean | null>(null);
 
   const shotParseResult = useMemo<ParseResult<CameraShot>>(() => {
     if (cameraShot) return { value: cameraShot, error: null };
@@ -83,8 +99,25 @@ export function CameraScriptController({
     }
   }, [cameraViewPreset, cameraViewPresetJson]);
 
+  const orbitParseResult = useMemo<ParseResult<ResolvedCameraAxisOrbitScript>>(() => {
+    if (cameraAxisOrbit) {
+      try {
+        return { value: parseCameraAxisOrbitScript(cameraAxisOrbit), error: null };
+      } catch (error) {
+        return { value: null, error: toError(error) };
+      }
+    }
+    if (!cameraAxisOrbitJson) return { value: null, error: null };
+    try {
+      return { value: parseCameraAxisOrbitScript(cameraAxisOrbitJson), error: null };
+    } catch (error) {
+      return { value: null, error: toError(error) };
+    }
+  }, [cameraAxisOrbit, cameraAxisOrbitJson]);
+
   const resolvedShot = shotParseResult.value;
   const resolvedPreset = presetParseResult.value;
+  const resolvedOrbit = orbitParseResult.value;
 
   useEffect(() => {
     if (shotParseResult.error) {
@@ -97,6 +130,12 @@ export function CameraScriptController({
       onError?.(presetParseResult.error);
     }
   }, [onError, presetParseResult.error]);
+
+  useEffect(() => {
+    if (orbitParseResult.error) {
+      onError?.(orbitParseResult.error);
+    }
+  }, [onError, orbitParseResult.error]);
 
   useEffect(() => {
     let disposed = false;
@@ -180,6 +219,162 @@ export function CameraScriptController({
 
   useEffect(() => {
     if (!viewerCore) return;
+    if (mode !== 'orbit') return;
+    if (!resolvedOrbit) return;
+
+    const orbitControls = viewerCore.plugins.get<IOrbitControlsPlugin>('OrbitControlsPlugin')?.controls;
+    const modelLoader = viewerCore.plugins.get<IModelLoaderPlugin>('ModelLoaderPlugin');
+    const camera = viewerCore.camera.camera;
+
+    const cancelOrbitAnimation = () => {
+      if (applyOrbitRafRef.current !== null) {
+        window.cancelAnimationFrame(applyOrbitRafRef.current);
+        applyOrbitRafRef.current = null;
+      }
+    };
+
+    const restoreOrbitControls = () => {
+      if (orbitControls && orbitControlsEnabledRef.current !== null) {
+        orbitControls.enabled = orbitControlsEnabledRef.current;
+        orbitControlsEnabledRef.current = null;
+      }
+    };
+
+    const computeModelCenter = () => {
+      if (modelCenter) return modelCenter.clone();
+      return modelLoader?.getCenter() ?? null;
+    };
+
+    const computeModelRadius = () => {
+      if (typeof modelRadius === 'number' && Number.isFinite(modelRadius) && modelRadius > 0) return modelRadius;
+      const bbox = modelLoader?.getBoundingBox();
+      if (!bbox) return undefined;
+      const sphere = new THREE.Sphere();
+      bbox.getBoundingSphere(sphere);
+      return sphere.radius > 0 ? sphere.radius : undefined;
+    };
+
+    const computeFitDistance = (target: THREE.Vector3) => {
+      const bbox = modelLoader?.getBoundingBox();
+      if (!bbox) return null;
+
+      // fit distance 只关心“初始姿态是否装得下”，
+      // 因此这里始终用脚本声明的初始 phaseDeg，而不是动画中的实时相位。
+      const padding =
+        resolvedOrbit.distance.mode === 'fit' ? resolvedOrbit.distance.padding : undefined;
+
+      return computeOrbitFitDistance({
+        boundingBox: bbox,
+        target,
+        axis: resolvedOrbit.axis,
+        axisAngleDeg: resolvedOrbit.axisAngleDeg,
+        phaseDeg: resolvedOrbit.phaseDeg,
+        fovDeg: camera.fov,
+        aspect: camera.aspect,
+        near: camera.near,
+        ...(padding !== undefined ? { padding } : {}),
+      });
+    };
+
+    const applyOrbitState = (phaseDeg: number) => {
+      const target = computeModelCenter();
+      if (!target) return false;
+
+      // 这一步把三种距离模式统一收敛成最终半径：
+      // absolute -> 直接使用
+      // relativeToModelRadius -> 乘模型包围球半径
+      // fit -> 根据当前初始观察姿态反推出“整模入窗”的推荐距离
+      const computedModelRadius = computeModelRadius();
+      const computedFitDistance =
+        resolvedOrbit.distance.mode === 'fit' ? computeFitDistance(target) ?? undefined : undefined;
+
+      const radius = resolveOrbitDistanceValue(resolvedOrbit.distance, {
+        ...(computedModelRadius !== undefined ? { modelRadius: computedModelRadius } : {}),
+        ...(computedFitDistance !== undefined ? { fitDistance: computedFitDistance } : {}),
+      });
+
+      if (!(typeof radius === 'number' && Number.isFinite(radius) && radius > 0)) {
+        return false;
+      }
+
+      const nextPose = getAxisOrbitPose({
+        target,
+        axis: resolvedOrbit.axis,
+        axisAngleDeg: resolvedOrbit.axisAngleDeg,
+        phaseDeg,
+        radius,
+      });
+
+      applyAxisOrbitPose(
+        orbitControls
+          ? { camera, orbitControls }
+          : { camera },
+        nextPose
+      );
+
+      return true;
+    };
+
+    if (orbitControls && orbitControlsEnabledRef.current === null) {
+      // orbit 模式被设计为“脚本完全接管镜头”，
+      // 所以这里先记住旧状态，退出 orbit 模式时再恢复。
+      orbitControlsEnabledRef.current = orbitControls.enabled;
+      orbitControls.enabled = false;
+    }
+
+    if (!resolvedOrbit.autoRotate) {
+      if (!applyOrbitState(resolvedOrbit.phaseDeg)) {
+        const waitForModel = () => {
+          if (applyOrbitState(resolvedOrbit.phaseDeg)) return;
+          applyOrbitRafRef.current = window.requestAnimationFrame(waitForModel);
+        };
+        waitForModel();
+      }
+
+      return () => {
+        cancelOrbitAnimation();
+        restoreOrbitControls();
+      };
+    }
+
+    let isDisposed = false;
+    let lastTimestamp: number | null = null;
+    let currentPhaseDeg = resolvedOrbit.phaseDeg;
+
+    const frame = (timestamp: number) => {
+      if (isDisposed) return;
+
+      // 用时间积分而不是固定步长，
+      // 这样浏览器帧率波动时相机速度依然稳定。
+      if (lastTimestamp !== null) {
+        const elapsedSeconds = Math.max(0, timestamp - lastTimestamp) / 1000;
+        currentPhaseDeg += resolvedOrbit.speedDegPerSec * elapsedSeconds;
+      }
+      lastTimestamp = timestamp;
+
+      const hasApplied = applyOrbitState(currentPhaseDeg);
+      if (!hasApplied && resolvedOrbit.applyWhen === 'afterModelLoaded') {
+        // 还没有模型时不报错，继续等待即可。
+      }
+
+      applyOrbitRafRef.current = window.requestAnimationFrame(frame);
+    };
+
+    if (resolvedOrbit.applyWhen === 'immediate') {
+      applyOrbitState(currentPhaseDeg);
+    }
+
+    applyOrbitRafRef.current = window.requestAnimationFrame(frame);
+
+    return () => {
+      isDisposed = true;
+      cancelOrbitAnimation();
+      restoreOrbitControls();
+    };
+  }, [mode, modelCenter, modelRadius, onError, resolvedOrbit, viewerCore]);
+
+  useEffect(() => {
+    if (!viewerCore) return;
     if (mode !== 'preset') return;
     if (!resolvedPreset) return;
 
@@ -248,6 +443,22 @@ export function CameraScriptController({
       }
     };
   }, [applyViewWhen, mode, modelCenter, modelRadius, onError, resolvedPreset, viewerCore]);
+
+  useEffect(() => {
+    if (mode === 'orbit' || mode === 'preset') {
+      return;
+    }
+
+    if (applyPresetRafRef.current !== null) {
+      window.cancelAnimationFrame(applyPresetRafRef.current);
+      applyPresetRafRef.current = null;
+    }
+
+    if (applyOrbitRafRef.current !== null) {
+      window.cancelAnimationFrame(applyOrbitRafRef.current);
+      applyOrbitRafRef.current = null;
+    }
+  }, [mode]);
 
   return null;
 }
