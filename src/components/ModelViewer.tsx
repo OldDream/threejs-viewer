@@ -246,5 +246,6 @@ export type {
   ModelViewerErrorContext,
   ModelViewerHandle,
   ModelViewerModel,
+  OrbitModelViewerProps,
   ModelViewerProps,
 } from '../types/modelViewer';

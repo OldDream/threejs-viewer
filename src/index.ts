@@ -83,8 +83,13 @@ export {
   type ModelViewerCameraScript,
   type ModelViewerErrorContext,
   type ModelViewerModel,
+  type OrbitModelViewerProps,
   type ModelViewerProps,
 } from './components/ModelViewer';
+
+export {
+  OrbitModelViewer,
+} from './components/OrbitModelViewer';
 
 export {
   CameraScriptController,

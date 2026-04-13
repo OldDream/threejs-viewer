@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { CameraAxisOrbitScript } from '../camera/CameraAxisOrbit';
+import type { CameraAxisOrbitScript, OrbitAxis } from '../camera/CameraAxisOrbit';
 import type { CameraShot } from '../camera/CameraShotIO';
 import type { CameraViewPreset } from '../camera/CameraViewPreset';
 import type { ViewerCore } from '../core/ViewerCore';
@@ -69,4 +69,26 @@ export interface ModelViewerProps {
   onLoadingChange?: (loading: boolean) => void;
   onError?: (error: Error, context: ModelViewerErrorContext) => void;
   onViewerReady?: (viewerCore: ViewerCore) => void;
+}
+
+/**
+ * 面向第三方业务的高层轨道组件参数。
+ *
+ * 它只暴露当前确认允许外部调节的那一组参数：
+ * - 轨道轴
+ * - 与旋转轴夹角
+ * - 初始相位
+ * - 是否自动旋转
+ * - 旋转速度
+ * - fit 留白系数
+ *
+ * 距离策略被固定为 fit，避免第三方接入时引入额外的策略分支。
+ */
+export interface OrbitModelViewerProps extends Omit<ModelViewerProps, 'cameraScript'> {
+  orbitAxis?: OrbitAxis;
+  axisAngleDeg?: number;
+  initialPhaseDeg?: number;
+  autoRotate?: boolean;
+  rotationSpeedDegPerSec?: number;
+  fitPadding?: number;
 }

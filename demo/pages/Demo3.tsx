@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type ModelLoadResult,
-  type ModelViewerCameraScript,
   type ModelViewerErrorContext,
   type ModelViewerHandle,
   type ModelViewerModel,
-  ModelViewer,
+  OrbitModelViewer,
 } from '../../src';
 import { DemoLayout, DemoMain } from '../components/DemoLayout';
 import { DemoHeader } from '../components/DemoHeader';
@@ -30,7 +29,6 @@ const INITIAL_FILE_STATE: FileState = {
   isFolderMode: false,
 };
 
-type OrbitDistanceMode = 'absolute' | 'relativeToModelRadius' | 'fit';
 type OrbitAxis = 'x' | 'y' | 'z';
 
 const styles = {
@@ -150,9 +148,6 @@ export function Demo3() {
   const [phaseDeg, setPhaseDeg] = useState(45);
   const [autoRotate, setAutoRotate] = useState(true);
   const [speedDegPerSec, setSpeedDegPerSec] = useState(15);
-  const [distanceMode, setDistanceMode] = useState<OrbitDistanceMode>('fit');
-  const [absoluteDistance, setAbsoluteDistance] = useState(6);
-  const [relativeDistance, setRelativeDistance] = useState(2.2);
   const [fitPadding, setFitPadding] = useState(1.15);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -162,33 +157,17 @@ export function Demo3() {
   const modelAnimation = useModelAnimation(viewerRef, loadResult);
 
   /**
-   * appliedCameraScript 就是 demo3 最核心的教学点：
-   * UI 上的每一个控制项，最终都被翻译成一个可复用的 `cameraScript` 对象。
-   * 用户以后把这个对象搬到业务代码里，就能获得同样的相机行为。
+   * 这个预览对象代表第三方真正需要传入的高层 props。
+   * demo3 直接使用 OrbitModelViewer，确保演示内容和对外 API 完全一致。
    */
-  const appliedCameraScript = useMemo<ModelViewerCameraScript>(() => {
-    const distance =
-      distanceMode === 'absolute'
-        ? { mode: 'absolute' as const, value: absoluteDistance }
-        : distanceMode === 'relativeToModelRadius'
-          ? { mode: 'relativeToModelRadius' as const, value: relativeDistance }
-          : { mode: 'fit' as const, padding: fitPadding };
-
-    return {
-      mode: 'orbit',
-      data: {
-        kind: 'axisOrbit',
-        axis,
-        axisAngleDeg,
-        phaseDeg,
-        autoRotate,
-        speedDegPerSec,
-        distance,
-      },
-    };
-  }, [absoluteDistance, autoRotate, axis, axisAngleDeg, distanceMode, fitPadding, phaseDeg, relativeDistance, speedDegPerSec]);
-
-  const previewJson = useMemo(() => JSON.stringify(appliedCameraScript, null, 2), [appliedCameraScript]);
+  const previewJson = useMemo(() => JSON.stringify({
+    orbitAxis: axis,
+    axisAngleDeg,
+    initialPhaseDeg: phaseDeg,
+    autoRotate,
+    rotationSpeedDegPerSec: speedDegPerSec,
+    fitPadding,
+  }, null, 2), [autoRotate, axis, axisAngleDeg, fitPadding, phaseDeg, speedDegPerSec]);
 
   const refreshMetrics = useCallback(() => {
     const handle = viewerRef.current;
@@ -274,15 +253,6 @@ export function Demo3() {
     setError(new Error(`[${context.stage}] ${viewerError.message}`));
   }, []);
 
-  const handleApplyRecommendedDistance = useCallback(() => {
-    if (recommendedDistance === null) {
-      return;
-    }
-
-    setDistanceMode('absolute');
-    setAbsoluteDistance(Number(recommendedDistance.toFixed(3)));
-  }, [recommendedDistance]);
-
   return (
     <DemoLayout>
       <DemoHeader />
@@ -290,7 +260,7 @@ export function Demo3() {
         <DemoSidebar>
           <ControlSection title="Demo3 路由">
             <div style={styles.helpText}>
-              当前页面路径：#/demo3。这个页面专门演示高层 `ModelViewer` 如何用参数化 `orbit` 模式控制相机。
+              当前页面路径：#/demo3。这个页面直接演示第三方将会使用的 `OrbitModelViewer` 组件。
             </div>
           </ControlSection>
 
@@ -393,86 +363,30 @@ export function Demo3() {
           </ControlSection>
 
           <ControlSection title="距离策略">
-            <div style={styles.axisButtons}>
-              {([
-                { value: 'fit', label: 'fit' },
-                { value: 'absolute', label: 'absolute' },
-                { value: 'relativeToModelRadius', label: 'relative' },
-              ] as const).map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setDistanceMode(value)}
-                  style={{
-                    ...themeStyles.buttonSecondary,
-                    flex: 1,
-                    backgroundColor:
-                      distanceMode === value ? colors.button.primary : colors.button.secondary,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {distanceMode === 'absolute' && (
-              <div style={styles.inputGroup}>
-                <label style={themeStyles.label}>绝对距离</label>
-                <input
-                  type="number"
-                  min={0.1}
-                  step={0.1}
-                  value={absoluteDistance}
-                  onChange={(e) => setAbsoluteDistance(Number(e.target.value))}
-                  style={themeStyles.input}
-                />
-              </div>
-            )}
-
-            {distanceMode === 'relativeToModelRadius' && (
-              <div style={styles.inputGroup}>
-                <label style={themeStyles.label}>相对模型半径倍数</label>
-                <input
-                  type="number"
-                  min={0.1}
-                  step={0.1}
-                  value={relativeDistance}
-                  onChange={(e) => setRelativeDistance(Number(e.target.value))}
-                  style={themeStyles.input}
-                />
-              </div>
-            )}
-
-            {distanceMode === 'fit' && (
-              <div style={styles.inputGroup}>
-                <label style={themeStyles.label}>留白系数 padding</label>
-                <input
-                  type="number"
-                  min={1}
-                  step={0.01}
-                  value={fitPadding}
-                  onChange={(e) => setFitPadding(Number(e.target.value))}
-                  style={themeStyles.input}
-                />
+            <div style={styles.inputGroup}>
+              <label style={themeStyles.label}>固定策略</label>
+              <div style={styles.metricCard}>
+                <div style={styles.metricValue}>fit</div>
                 <div style={styles.helpText}>
-                  fit 会根据当前初始姿态计算一个安全距离，避免首次加载时相机落到模型内部。
+                  第三方组件内部固定使用 fit 距离策略，只开放留白系数，避免出现多套距离语义。
                 </div>
               </div>
-            )}
+            </div>
 
-            <button
-              type="button"
-              onClick={handleApplyRecommendedDistance}
-              disabled={recommendedDistance === null}
-              style={{
-                ...themeStyles.buttonSecondary,
-                ...(recommendedDistance === null
-                  ? { backgroundColor: colors.button.disabled, cursor: 'not-allowed' }
-                  : {}),
-              }}
-            >
-              将推荐距离写入 absolute
-            </button>
+            <div style={styles.inputGroup}>
+              <label style={themeStyles.label}>留白系数 fitPadding</label>
+              <input
+                type="number"
+                min={1}
+                step={0.01}
+                value={fitPadding}
+                onChange={(e) => setFitPadding(Number(e.target.value))}
+                style={themeStyles.input}
+              />
+              <div style={styles.helpText}>
+                fit 会沿整圈轨道取一个最安全的距离，因此切换初始相位时相机不会忽远忽近。
+              </div>
+            </div>
           </ControlSection>
 
           <ControlSection title="观察指标">
@@ -484,13 +398,13 @@ export function Demo3() {
                 </div>
               </div>
               <div>
-                <div style={themeStyles.label}>推荐初始距离</div>
+                <div style={themeStyles.label}>fit 安全距离</div>
                 <div style={styles.metricValue}>
                   {recommendedDistance === null ? '--' : recommendedDistance.toFixed(3)}
                 </div>
               </div>
               <div style={styles.helpText}>
-                推荐距离来自 `ModelViewerHandle.getRecommendedOrbitDistance()`，可直接在业务接入中复用。
+                该值来自 `ModelViewerHandle.getRecommendedOrbitDistance()`，也是 `OrbitModelViewer` 当前会采用的稳定轨道半径。
               </div>
             </div>
           </ControlSection>
@@ -511,11 +425,16 @@ export function Demo3() {
 
         <div style={styles.viewerColumn}>
           <div style={styles.viewerArea}>
-            <ModelViewer
+            <OrbitModelViewer
               ref={viewerRef}
               {...(appliedModel ? { model: appliedModel } : {})}
-              cameraScript={appliedCameraScript}
-              grid={{ visible: true, size: 20, divisions: 20, plane: 'XZ', showAxes: true }}
+              orbitAxis={axis}
+              axisAngleDeg={axisAngleDeg}
+              initialPhaseDeg={phaseDeg}
+              autoRotate={autoRotate}
+              rotationSpeedDegPerSec={speedDegPerSec}
+              fitPadding={fitPadding}
+              grid={{ visible: false, size: 20, divisions: 20, plane: 'XZ', showAxes: false }}
               onLoad={handleLoadSuccess}
               onError={handleViewerError}
               onLoadingChange={setIsLoading}
