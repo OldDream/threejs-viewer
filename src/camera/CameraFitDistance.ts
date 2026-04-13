@@ -13,6 +13,11 @@ export interface OrbitFitDistanceOptions {
   padding?: number;
 }
 
+export interface OrbitFitDistanceEnvelopeOptions
+  extends Omit<OrbitFitDistanceOptions, 'phaseDeg'> {
+  sampleCount?: number;
+}
+
 function getBoundingBoxCorners(boundingBox: THREE.Box3): THREE.Vector3[] {
   const { min, max } = boundingBox;
 
@@ -85,4 +90,49 @@ export function computeOrbitFitDistance(options: OrbitFitDistanceOptions): numbe
   }
 
   return Math.max(minDistance * safePadding, near * 2);
+}
+
+/**
+ * 计算“整圈轨道中最保守的安全距离”。
+ *
+ * 对业务来说，这个值更符合“首次载入稳定显示”的预期：
+ * 无论用户把初始相位调到哪里，相机半径都不再跟着忽远忽近，
+ * 而是始终采用这条轨道上最远、最安全的那个距离。
+ */
+export function computeOrbitFitDistanceEnvelope(
+  options: OrbitFitDistanceEnvelopeOptions
+): number {
+  const {
+    sampleCount = 180,
+    boundingBox,
+    target,
+    axis,
+    axisAngleDeg,
+    fovDeg,
+    aspect,
+    near,
+    padding,
+  } = options;
+
+  const safeSampleCount = Math.max(12, Math.floor(sampleCount));
+  let maxDistance = 0;
+
+  for (let index = 0; index < safeSampleCount; index += 1) {
+    const phaseDeg = (360 / safeSampleCount) * index;
+    const distance = computeOrbitFitDistance({
+      boundingBox,
+      target,
+      axis,
+      axisAngleDeg,
+      phaseDeg,
+      fovDeg,
+      aspect,
+      ...(near !== undefined ? { near } : {}),
+      ...(padding !== undefined ? { padding } : {}),
+    });
+
+    maxDistance = Math.max(maxDistance, distance);
+  }
+
+  return maxDistance;
 }

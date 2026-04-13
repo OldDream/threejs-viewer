@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { computeOrbitFitDistance } from './CameraFitDistance';
+import { computeOrbitFitDistance, computeOrbitFitDistanceEnvelope } from './CameraFitDistance';
 import {
   getAxisOrbitPose,
   parseCameraAxisOrbitScript,
@@ -56,5 +56,48 @@ describe('CameraAxisOrbit', () => {
     expect(
       resolveOrbitDistanceValue({ mode: 'fit', padding: 1.1 }, { fitDistance })
     ).toBeCloseTo(fitDistance, 6);
+  });
+
+  it('computes an envelope distance that is stable and no smaller than any sampled phase', () => {
+    const boundingBox = new THREE.Box3(
+      new THREE.Vector3(-3, -1, -2),
+      new THREE.Vector3(3, 1, 2)
+    );
+
+    const envelope = computeOrbitFitDistanceEnvelope({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 65,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+      sampleCount: 72,
+    });
+
+    const sampleA = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 65,
+      phaseDeg: 0,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+    });
+
+    const sampleB = computeOrbitFitDistance({
+      boundingBox,
+      target: new THREE.Vector3(0, 0, 0),
+      axis: 'y',
+      axisAngleDeg: 65,
+      phaseDeg: 90,
+      fovDeg: 50,
+      aspect: 1.6,
+      padding: 1.1,
+    });
+
+    expect(envelope).toBeGreaterThanOrEqual(sampleA);
+    expect(envelope).toBeGreaterThanOrEqual(sampleB);
   });
 });

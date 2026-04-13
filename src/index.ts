@@ -107,6 +107,7 @@ export {
 
 export {
   computeOrbitFitDistance,
+  computeOrbitFitDistanceEnvelope,
 } from './camera/CameraFitDistance';
 
 export {

@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { parseCameraAxisOrbitScript } from '../camera/CameraAxisOrbit';
-import { computeOrbitFitDistance } from '../camera/CameraFitDistance';
+import { computeOrbitFitDistanceEnvelope } from '../camera/CameraFitDistance';
 import { CameraScriptController } from './CameraScriptController';
 import { ThreeViewer } from './ThreeViewer';
 import { useResolvedModel } from '../hooks/useResolvedModel';
@@ -144,15 +144,14 @@ export const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(funct
         // 再决定是否把它写回业务配置，避免相机初始化在模型内部。
         const padding = resolvedOptions.padding;
 
-        return computeOrbitFitDistance({
+        return computeOrbitFitDistanceEnvelope({
           boundingBox: loadResult.boundingBox,
           target: loadResult.center,
           axis: resolvedOptions.axis,
           axisAngleDeg: resolvedOptions.axisAngleDeg,
-          phaseDeg: resolvedOptions.phaseDeg,
           fovDeg: instances.camera.fov,
           aspect: instances.camera.aspect,
-          near: instances.camera.near,
+          ...(instances.camera.near !== undefined ? { near: instances.camera.near } : {}),
           ...(padding !== undefined ? { padding } : {}),
         });
       },

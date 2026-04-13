@@ -10,7 +10,9 @@ import {
   type CameraAxisOrbitScript,
   type ResolvedCameraAxisOrbitScript,
 } from '../camera/CameraAxisOrbit';
-import { computeOrbitFitDistance } from '../camera/CameraFitDistance';
+import {
+  computeOrbitFitDistanceEnvelope,
+} from '../camera/CameraFitDistance';
 import { CameraPathAnimationPlugin } from '../plugins/CameraPathAnimationPlugin';
 import type { IModelLoaderPlugin } from '../plugins/ModelLoaderPlugin';
 import type { IOrbitControlsPlugin } from '../plugins/OrbitControlsPlugin';
@@ -258,20 +260,19 @@ export function CameraScriptController({
       const bbox = modelLoader?.getBoundingBox();
       if (!bbox) return null;
 
-      // fit distance 只关心“初始姿态是否装得下”，
-      // 因此这里始终用脚本声明的初始 phaseDeg，而不是动画中的实时相位。
       const padding =
         resolvedOrbit.distance.mode === 'fit' ? resolvedOrbit.distance.padding : undefined;
 
-      return computeOrbitFitDistance({
+      // 这里返回的是“整圈轨道的最大安全距离”，
+      // 这样用户切换初始相位时，相机半径不会跟着跳来跳去。
+      return computeOrbitFitDistanceEnvelope({
         boundingBox: bbox,
         target,
         axis: resolvedOrbit.axis,
         axisAngleDeg: resolvedOrbit.axisAngleDeg,
-        phaseDeg: resolvedOrbit.phaseDeg,
         fovDeg: camera.fov,
         aspect: camera.aspect,
-        near: camera.near,
+        ...(camera.near !== undefined ? { near: camera.near } : {}),
         ...(padding !== undefined ? { padding } : {}),
       });
     };
