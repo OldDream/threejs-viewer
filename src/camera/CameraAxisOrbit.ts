@@ -209,6 +209,15 @@ function getOrbitBasis(axis: OrbitAxis): { axisVector: THREE.Vector3; tangentU: 
   return { axisVector, tangentU, tangentV };
 }
 
+function getOrbitPlanarDirection(axis: OrbitAxis, phaseDeg: number): THREE.Vector3 {
+  const phaseRad = THREE.MathUtils.degToRad(normalizeAngleDeg(phaseDeg));
+  const { tangentU, tangentV } = getOrbitBasis(axis);
+
+  return tangentU.multiplyScalar(Math.cos(phaseRad)).add(
+    tangentV.multiplyScalar(Math.sin(phaseRad))
+  ).normalize();
+}
+
 export function getAxisOrbitOffset(options: {
   axis: OrbitAxis;
   axisAngleDeg: number;
@@ -217,12 +226,8 @@ export function getAxisOrbitOffset(options: {
 }): THREE.Vector3 {
   const { axis, axisAngleDeg, phaseDeg, radius } = options;
   const axisAngleRad = THREE.MathUtils.degToRad(clampAxisAngleDeg(axisAngleDeg));
-  const phaseRad = THREE.MathUtils.degToRad(normalizeAngleDeg(phaseDeg));
-  const { axisVector, tangentU, tangentV } = getOrbitBasis(axis);
-
-  const planarDirection = tangentU.multiplyScalar(Math.cos(phaseRad)).add(
-    tangentV.multiplyScalar(Math.sin(phaseRad))
-  );
+  const { axisVector } = getOrbitBasis(axis);
+  const planarDirection = getOrbitPlanarDirection(axis, phaseDeg);
 
   return axisVector
     .clone()
@@ -230,22 +235,6 @@ export function getAxisOrbitOffset(options: {
     .add(planarDirection.multiplyScalar(Math.sin(axisAngleRad)))
     .normalize()
     .multiplyScalar(radius);
-}
-
-function getSafeReferenceUp(forward: THREE.Vector3): THREE.Vector3 {
-  const worldUpCandidates = [
-    new THREE.Vector3(0, 1, 0),
-    new THREE.Vector3(0, 0, 1),
-    new THREE.Vector3(1, 0, 0),
-  ];
-
-  for (const candidate of worldUpCandidates) {
-    if (Math.abs(candidate.dot(forward)) < 0.999) {
-      return candidate;
-    }
-  }
-
-  return new THREE.Vector3(0, 1, 0);
 }
 
 export function getAxisOrbitPose(options: {
@@ -256,13 +245,27 @@ export function getAxisOrbitPose(options: {
   radius: number;
 }): AxisOrbitPose {
   const { target, radius, axis, axisAngleDeg, phaseDeg } = options;
-  const offset = getAxisOrbitOffset({ axis, axisAngleDeg, phaseDeg, radius });
-  const position = target.clone().add(offset);
+  const clampedAxisAngleDeg = clampAxisAngleDeg(axisAngleDeg);
+  const axisAngleRad = THREE.MathUtils.degToRad(clampedAxisAngleDeg);
+  const { axisVector } = getOrbitBasis(axis);
+  const planarDirection = getOrbitPlanarDirection(axis, phaseDeg);
+  const offsetDirection = axisVector
+    .clone()
+    .multiplyScalar(Math.cos(axisAngleRad))
+    .add(planarDirection.clone().multiplyScalar(Math.sin(axisAngleRad)))
+    .normalize();
+  const position = target.clone().add(offsetDirection.clone().multiplyScalar(radius));
 
   // forward 指向“相机看向哪里”，也就是从相机位置指向 target。
-  const forward = target.clone().sub(position).normalize();
-  const referenceUp = getSafeReferenceUp(forward);
-  const right = new THREE.Vector3().crossVectors(forward, referenceUp).normalize();
+  const forward = offsetDirection.clone().negate();
+  // 使用“增大 axisAngle 时的轨道切线”作为 up，
+  // 这样在 0 / 180 极点附近也能保持连续，不会突然换一个世界 up。
+  const upCandidate = axisVector
+    .clone()
+    .multiplyScalar(Math.sin(axisAngleRad))
+    .add(planarDirection.clone().multiplyScalar(-Math.cos(axisAngleRad)))
+    .normalize();
+  const right = new THREE.Vector3().crossVectors(forward, upCandidate).normalize();
   const up = new THREE.Vector3().crossVectors(right, forward).normalize();
 
   return {

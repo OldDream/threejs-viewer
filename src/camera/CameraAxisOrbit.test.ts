@@ -38,6 +38,44 @@ describe('CameraAxisOrbit', () => {
     expect(pose.up.length()).toBeCloseTo(1, 6);
   });
 
+  it('keeps camera orientation continuous at the 0 and 180 degree poles', () => {
+    const target = new THREE.Vector3(0, 0, 0);
+
+    const nearNorthPole = getAxisOrbitPose({
+      target,
+      axis: 'y',
+      axisAngleDeg: 0.001,
+      phaseDeg: 35,
+      radius: 8,
+    });
+    const northPole = getAxisOrbitPose({
+      target,
+      axis: 'y',
+      axisAngleDeg: 0,
+      phaseDeg: 35,
+      radius: 8,
+    });
+    const nearSouthPole = getAxisOrbitPose({
+      target,
+      axis: 'y',
+      axisAngleDeg: 179.999,
+      phaseDeg: 35,
+      radius: 8,
+    });
+    const southPole = getAxisOrbitPose({
+      target,
+      axis: 'y',
+      axisAngleDeg: 180,
+      phaseDeg: 35,
+      radius: 8,
+    });
+
+    expect(northPole.up.dot(nearNorthPole.up)).toBeGreaterThan(0.999);
+    expect(northPole.right.dot(nearNorthPole.right)).toBeGreaterThan(0.999);
+    expect(southPole.up.dot(nearSouthPole.up)).toBeGreaterThan(0.999);
+    expect(southPole.right.dot(nearSouthPole.right)).toBeGreaterThan(0.999);
+  });
+
   it('computes a fit distance larger than the raw half-extent for a front view', () => {
     const boundingBox = new THREE.Box3(
       new THREE.Vector3(-2, -1, -1),
