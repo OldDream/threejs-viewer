@@ -60,6 +60,14 @@ export function My3DViewer() {
 *   **`rotationSpeedDegPerSec`**: `number`
     *   旋转速度。正负值决定旋转方向，单位为度/秒。例如 `15` (表示每秒转过 15 度)。
 
+### 视觉与特效
+
+*   **`backgroundColor`**: `number | string`
+    *   3D 场景的背景颜色。默认值为灰色 (`0x545454`)。支持设定十六进制颜色、CSS 字符串，或者将其显式设置为 `'transparent'` 以生成真透明的 Canvas 背景底板，让下层网页 DOM 的内容透视出来。
+*   **`glassEffect`**: `boolean | GlassEffectConfig`
+    *   开启极客感“毛玻璃”透视特效。传入 `true` 则使用默认特效；或者传入对象 `{ blur: 10, color: 'rgba(255,255,255,0.1)' }` 覆盖默认的模糊半径与贴膜颜色。
+    *   *注意：开启该配置后，组建会强制向底层传递并接管 `backgroundColor="transparent"` 逻辑并往外层 DOM 混入 `backdrop-filter`。*
+
 ## 3. 回调与事件处理
 
 你可以通过相关的生命周期与交互事件来监听模型的加载情况或执行其他业务逻辑。
@@ -135,7 +143,11 @@ export default function IntegrationExample() {
         autoRotate={true}
         rotationSpeedDegPerSec={15}
         fitPadding={1.15}
+        
+        {/* 背景和视觉效果 */}
         backgroundColor={0x545454}
+        glassEffect={false} /* 设为 true 可呈现全透明并携带高斯模糊滤镜的玻璃质感 */
+        
         grid={{ visible: false, size: 20, divisions: 20, plane: 'XZ' }}
         style={{ width: '100%', height: '100%' }}
         onLoadingChange={setIsLoading}

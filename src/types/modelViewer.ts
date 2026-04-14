@@ -85,6 +85,13 @@ export interface ModelViewerProps {
  *
  * 距离策略被固定为 fit，避免第三方接入时引入额外的策略分支。
  */
+export interface GlassEffectConfig {
+  /** 毛玻璃模糊半径，例如 10 (px) */
+  blur?: number;
+  /** 毛玻璃覆盖的遮罩色，如 'rgba(255, 255, 255, 0.1)' */
+  color?: string;
+}
+
 export interface OrbitModelViewerProps extends Omit<ModelViewerProps, 'cameraScript'> {
   orbitAxis?: OrbitAxis;
   axisAngleDeg?: number;
@@ -92,4 +99,6 @@ export interface OrbitModelViewerProps extends Omit<ModelViewerProps, 'cameraScr
   autoRotate?: boolean;
   rotationSpeedDegPerSec?: number;
   fitPadding?: number;
+  /** 是否开启毛玻璃背景。传 true 使用默认效果，或传入配置对象自定义 */
+  glassEffect?: boolean | GlassEffectConfig;
 }

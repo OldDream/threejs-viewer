@@ -23,6 +23,7 @@ export const OrbitModelViewer = forwardRef<ModelViewerHandle, OrbitModelViewerPr
       autoRotate = true,
       rotationSpeedDegPerSec = 15,
       fitPadding = 1.15,
+      glassEffect,
       ...restProps
     },
     ref
@@ -49,7 +50,26 @@ export const OrbitModelViewer = forwardRef<ModelViewerHandle, OrbitModelViewerPr
       };
     }, [autoRotate, axisAngleDeg, fitPadding, initialPhaseDeg, orbitAxis, rotationSpeedDegPerSec]);
 
-    return <ModelViewer ref={ref} {...restProps} cameraScript={cameraScript} />;
+    const glassStyles: React.CSSProperties = useMemo(() => {
+      if (!glassEffect) return {};
+      const blur = typeof glassEffect === 'object' && glassEffect.blur !== undefined ? glassEffect.blur : 10;
+      const color = typeof glassEffect === 'object' && glassEffect.color !== undefined ? glassEffect.color : 'rgba(255, 255, 255, 0.1)';
+      return {
+        backgroundColor: color,
+        backdropFilter: `blur(${blur}px)`,
+        WebkitBackdropFilter: `blur(${blur}px)`,
+      };
+    }, [glassEffect]);
+
+    return (
+      <ModelViewer
+        ref={ref}
+        {...restProps}
+        cameraScript={cameraScript}
+        style={{ ...glassStyles, ...restProps.style }}
+        {...(glassEffect ? { backgroundColor: 'transparent' } : {})}
+      />
+    );
   }
 );
 

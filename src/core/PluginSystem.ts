@@ -149,7 +149,7 @@ export class PluginSystem implements IPluginSystem {
    */
   unregister(pluginName: string): void {
     if (this._isDisposed) {
-      throw new Error('PluginSystem has been disposed');
+      return; // Already disposed, nothing to unregister
     }
 
     const plugin = this._plugins.get(pluginName);

@@ -487,7 +487,9 @@ export const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(
       }
 
       const scene = vc.scene.scene;
-      if (backgroundColor !== undefined) {
+      if (backgroundColor === 'transparent') {
+        scene.background = null;
+      } else if (backgroundColor !== undefined) {
         scene.background = new THREE.Color(backgroundColor);
       } else {
         scene.background = new THREE.Color(DEFAULT_BACKGROUND_COLOR);

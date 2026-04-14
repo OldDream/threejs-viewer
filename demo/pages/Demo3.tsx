@@ -149,6 +149,7 @@ export function Demo3() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [speedDegPerSec, setSpeedDegPerSec] = useState(15);
   const [fitPadding, setFitPadding] = useState(1.15);
+  const [glassEffect, setGlassEffect] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [loadResult, setLoadResult] = useState<ModelLoadResult | null>(null);
@@ -167,7 +168,8 @@ export function Demo3() {
     autoRotate,
     rotationSpeedDegPerSec: speedDegPerSec,
     fitPadding,
-  }, null, 2), [autoRotate, axis, axisAngleDeg, fitPadding, phaseDeg, speedDegPerSec]);
+    glassEffect,
+  }, null, 2), [autoRotate, axis, axisAngleDeg, fitPadding, glassEffect, phaseDeg, speedDegPerSec]);
 
   const refreshMetrics = useCallback(() => {
     const handle = viewerRef.current;
@@ -389,6 +391,20 @@ export function Demo3() {
             </div>
           </ControlSection>
 
+          <ControlSection title="视觉效果">
+            <div style={styles.inputGroup}>
+              <label style={themeStyles.label}>毛玻璃效果 (Glass Effect)</label>
+              <label style={{ color: colors.text.primary, display: 'flex', gap: spacing.sm, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={glassEffect}
+                  onChange={(e) => setGlassEffect(e.target.checked)}
+                />
+                启用 (背景变透明并附带毛玻璃)
+              </label>
+            </div>
+          </ControlSection>
+
           <ControlSection title="观察指标">
             <div style={styles.metricCard}>
               <div>
@@ -423,7 +439,14 @@ export function Demo3() {
           <ControlsInstructions isCSMode={false} />
         </DemoSidebar>
 
-        <div style={styles.viewerColumn}>
+        <div style={{
+          ...styles.viewerColumn,
+          ...(glassEffect ? {
+            background: 'linear-gradient(45deg, #12c2e9, #c471ed, #f64f59)',
+            backgroundSize: '400% 400%',
+            animation: 'gradientBG 15s ease infinite',
+          } : {})
+        }}>
           <div style={styles.viewerArea}>
             <OrbitModelViewer
               ref={viewerRef}
@@ -434,6 +457,7 @@ export function Demo3() {
               autoRotate={autoRotate}
               rotationSpeedDegPerSec={speedDegPerSec}
               fitPadding={fitPadding}
+              glassEffect={glassEffect}
               grid={{ visible: false, size: 20, divisions: 20, plane: 'XZ', showAxes: false }}
               onLoad={handleLoadSuccess}
               onError={handleViewerError}
