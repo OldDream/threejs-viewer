@@ -40,7 +40,7 @@ export default defineConfig(({ command, mode }) => {
       },
       rollupOptions: {
         // Externalize deps that shouldn't be bundled into the library
-        external: ['react', 'react-dom', 'three', 'three-stdlib'],
+        external: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'three', 'three-stdlib'],
         output: {
           // Global variables to use in UMD build for externalized deps
           globals: {
